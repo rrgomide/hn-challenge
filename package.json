@@ -1,0 +1,23 @@
+{
+  "name": "hn-challenge-raphael-gomide",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm run --parallel dev",
+    "build": "pnpm run --recursive build",
+    "lint": "pnpm run --recursive lint",
+    "typecheck": "pnpm run --recursive typecheck",
+    "typegen": "react-router typegen"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "^18.0.0"
+    }
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
