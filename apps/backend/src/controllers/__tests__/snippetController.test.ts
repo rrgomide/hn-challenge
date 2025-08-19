@@ -15,7 +15,8 @@ describe('SnippetController', () => {
     mockStatus = vi.fn().mockReturnValue({ json: mockJson });
     
     mockRequest = {
-      body: {}
+      body: {},
+      params: {}
     };
     
     mockResponse = {
@@ -109,6 +110,102 @@ describe('SnippetController', () => {
       mockRequest.body = { text: 'Valid text' };
 
       await controller.createSnippet(mockRequest as Request, mockResponse as Response);
+
+      expect(mockStatus).toHaveBeenCalledWith(500);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Internal server error'
+      });
+      expect(consoleErrorSpy).toHaveBeenCalled();
+
+      // Restore
+      (controller as any).snippetService = originalService;
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('getSnippet', () => {
+    it('should return a snippet when valid ID is provided', async () => {
+      const snippetId = 'test-uuid-123';
+      const mockSnippet = {
+        id: snippetId,
+        text: 'Test snippet text',
+        summary: 'Test snippet text'
+      };
+
+      // Mock the service to return the snippet
+      const originalService = (controller as any).snippetService;
+      (controller as any).snippetService = {
+        getSnippetById: vi.fn().mockResolvedValue(mockSnippet)
+      };
+
+      mockRequest.params = { id: snippetId };
+
+      await controller.getSnippet(mockRequest as Request, mockResponse as Response);
+
+      expect(mockJson).toHaveBeenCalledWith(mockSnippet);
+      expect(mockStatus).not.toHaveBeenCalled();
+
+      // Restore
+      (controller as any).snippetService = originalService;
+    });
+
+    it('should return 404 when snippet is not found', async () => {
+      const snippetId = 'non-existent-id';
+
+      // Mock the service to return null
+      const originalService = (controller as any).snippetService;
+      (controller as any).snippetService = {
+        getSnippetById: vi.fn().mockResolvedValue(null)
+      };
+
+      mockRequest.params = { id: snippetId };
+
+      await controller.getSnippet(mockRequest as Request, mockResponse as Response);
+
+      expect(mockStatus).toHaveBeenCalledWith(404);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Snippet not found'
+      });
+
+      // Restore
+      (controller as any).snippetService = originalService;
+    });
+
+    it('should return 400 when ID parameter is missing', async () => {
+      mockRequest.params = {};
+
+      await controller.getSnippet(mockRequest as Request, mockResponse as Response);
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Snippet ID is required'
+      });
+    });
+
+    it('should return 400 when ID parameter is empty string', async () => {
+      mockRequest.params = { id: '' };
+
+      await controller.getSnippet(mockRequest as Request, mockResponse as Response);
+
+      expect(mockStatus).toHaveBeenCalledWith(400);
+      expect(mockJson).toHaveBeenCalledWith({
+        error: 'Snippet ID is required'
+      });
+    });
+
+    it('should return 500 when service throws an error', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const snippetId = 'test-id';
+
+      // Mock the service to throw an error
+      const originalService = (controller as any).snippetService;
+      (controller as any).snippetService = {
+        getSnippetById: vi.fn().mockRejectedValue(new Error('Service error'))
+      };
+
+      mockRequest.params = { id: snippetId };
+
+      await controller.getSnippet(mockRequest as Request, mockResponse as Response);
 
       expect(mockStatus).toHaveBeenCalledWith(500);
       expect(mockJson).toHaveBeenCalledWith({

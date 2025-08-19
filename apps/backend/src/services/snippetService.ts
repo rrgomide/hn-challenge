@@ -18,6 +18,10 @@ export class SnippetService {
     return snippet;
   }
 
+  async getSnippetById(id: string): Promise<Snippet | null> {
+    return this.snippets.get(id) || null;
+  }
+
   private generateSummary(text: string): string {
     const words = text.trim().split(/\s+/);
     

@@ -7,7 +7,9 @@
     "start": "pnpm run --recursive start",
     "lint": "pnpm run --recursive lint",
     "typecheck": "pnpm run --recursive typecheck",
-    "typegen": "react-router typegen"
+    "typegen": "react-router typegen",
+    "test:backend": "pnpm --filter @hn-challenge/backend test",
+    "test:frontend": "pnpm --filter @hn-challenge/frontend test"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
