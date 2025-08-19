@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm run --parallel dev",
-    "build": "pnpm run --recursive build",
+    "build": "pnpm --filter @hn-challenge/shared build && pnpm --filter @hn-challenge/backend build && pnpm --filter @hn-challenge/frontend build",
     "start": "pnpm run --recursive start",
     "lint": "pnpm run --recursive lint",
     "typecheck": "pnpm run --recursive typecheck",

@@ -22,7 +22,8 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./app/*"]
+      "~/*": ["./app/*"],
+      "@hn-challenge/shared": ["../shared/dist"]
     },
     "noEmit": true
   }
