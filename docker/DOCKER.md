@@ -2,6 +2,8 @@
 
 This project includes Docker configuration to run both the backend API and frontend UI in containers.
 
+**Note:** All Docker-related files are located in the `docker/` folder. Make sure to run Docker commands from within this directory.
+
 ## Prerequisites
 
 - Docker
@@ -12,6 +14,7 @@ This project includes Docker configuration to run both the backend API and front
 1. Build and start all services:
 
    ```bash
+   cd docker
    docker compose up --build
    ```
 
@@ -53,8 +56,8 @@ The Docker setup is optimized for production with:
 
 ## Commands
 
-- Start services: `docker compose up`
-- Start in background: `docker compose up -d`
-- Stop services: `docker compose down`
-- View logs: `docker compose logs -f`
-- Rebuild: `docker compose up --build`
+- Start services: `cd docker && docker compose up`
+- Start in background: `cd docker && docker compose up -d`
+- Stop services: `cd docker && docker compose down`
+- View logs: `cd docker && docker compose logs -f`
+- Rebuild: `cd docker && docker compose up --build`

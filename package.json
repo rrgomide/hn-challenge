@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "pnpm run --parallel dev",
     "build": "pnpm run --recursive build",
+    "start": "pnpm run --recursive start",
     "lint": "pnpm run --recursive lint",
     "typecheck": "pnpm run --recursive typecheck",
     "typegen": "react-router typegen"
@@ -14,7 +15,10 @@
   "pnpm": {
     "overrides": {
       "@types/react": "^18.0.0"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   },
   "workspaces": [
     "apps/*",

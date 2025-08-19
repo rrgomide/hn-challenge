@@ -3,8 +3,8 @@ version: '3.8'
 services:
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
       target: production
     container_name: hn-challenge-backend
     ports:
@@ -17,8 +17,8 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
       target: production
     container_name: hn-challenge-frontend
     ports:
@@ -26,14 +26,7 @@ services:
     environment:
       - PORT=3030
       - NODE_ENV=production
-    command:
-      [
-        'npx',
-        'react-router-serve',
-        './apps/frontend/build/client/index.html',
-        '--port',
-        '3030',
-      ]
+    command: ['pnpm', '--filter', '@hn-challenge/frontend', 'start']
     restart: unless-stopped
     depends_on:
       - backend

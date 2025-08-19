@@ -2,7 +2,7 @@
 FROM node:20-alpine AS base
 
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.14.0
 
 # Set working directory
 WORKDIR /app
@@ -57,5 +57,3 @@ COPY packages/shared ./packages/shared
 # Expose ports
 EXPOSE 3000 3030
 
-# Default command (will be overridden by docker-compose)
-CMD ["pnpm", "--filter", "@hn-challenge/backend", "start"]
