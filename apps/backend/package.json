@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "author": "Raphael Gomide",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",

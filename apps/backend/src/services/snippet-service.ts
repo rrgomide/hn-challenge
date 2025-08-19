@@ -20,7 +20,6 @@ export class SnippetService {
   async createSnippet(request: CreateSnippetRequest): Promise<Snippet> {
     const id = randomUUID()
     const summary = await this.generateSummary(request.text)
-    console.debug('🔥 ~ summary:', summary)
 
     const snippet: Snippet = {
       id,

@@ -19,13 +19,17 @@ export class DatabaseConnection {
       return this.db
     }
 
-    const connectionString = process.env.MONGODB_URI || 'mongodb://admin:password123@localhost:27017/hn_challenge?authSource=admin'
-    
+    const connectionString = process.env.MONGODB_URI
+
     try {
+      if (!connectionString) {
+        throw new Error('MONGODB_URI is not set')
+      }
+
       this.client = new MongoClient(connectionString)
       await this.client.connect()
       this.db = this.client.db('hn_challenge')
-      
+
       console.log('Connected to MongoDB successfully')
       return this.db
     } catch (error) {

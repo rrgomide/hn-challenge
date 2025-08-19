@@ -88,6 +88,6 @@ export function createAIService(): AIService {
   }
 
   throw new Error(
-    'No AI provider API keys found. Please set either GOOGLE_AI_API_KEY or OPENAI_API_KEY environment variable.'
+    'No AI provider API keys found. Please set either GOOGLE_GENERATIVE_AI_API_KEY or OPENAI_API_KEY environment variable.'
   )
 }

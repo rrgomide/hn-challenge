@@ -21,14 +21,14 @@ describe('AIService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGenerateText.mockClear()
-    // Clear environment variables
-    delete process.env.GOOGLE_AI_API_KEY
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY
     delete process.env.OPENAI_API_KEY
+    vi.resetModules()
   })
 
   describe('createAIService', () => {
-    it('should prioritize Google AI when GOOGLE_AI_API_KEY is available', async () => {
-      process.env.GOOGLE_AI_API_KEY = 'test-google-key'
+    it('should prioritize Google AI when GOOGLE_GENERATIVE_AI_API_KEY is available', async () => {
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-google-key'
       process.env.OPENAI_API_KEY = 'test-openai-key'
 
       const { createAIService } = await import('../ai-service.js')
@@ -47,12 +47,12 @@ describe('AIService', () => {
     it('should throw error when no API keys are available', async () => {
       const { createAIService } = await import('../ai-service.js')
       expect(() => createAIService()).toThrow(
-        'No AI provider API keys found. Please set either GOOGLE_AI_API_KEY or OPENAI_API_KEY environment variable.'
+        'No AI provider API keys found. Please set either GOOGLE_GENERATIVE_AI_API_KEY or OPENAI_API_KEY environment variable.'
       )
     })
 
     it('should use Google AI when both keys are available (priority test)', async () => {
-      process.env.GOOGLE_AI_API_KEY = 'test-google-key'
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-google-key'
       process.env.OPENAI_API_KEY = 'test-openai-key'
 
       const { createAIService } = await import('../ai-service.js')
@@ -63,7 +63,7 @@ describe('AIService', () => {
 
   describe('GoogleAIService', () => {
     beforeEach(() => {
-      process.env.GOOGLE_AI_API_KEY = 'test-google-key'
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-google-key'
     })
 
     it('should summarize text correctly', async () => {
@@ -151,8 +151,7 @@ describe('AIService', () => {
 
   describe('AIService interface compliance', () => {
     it('should implement summarizeText method', async () => {
-      process.env.GOOGLE_AI_API_KEY = 'test-key'
-      vi.resetModules()
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-key'
       const { createAIService } = await import('../ai-service.js')
       const service = createAIService()
 
@@ -161,8 +160,7 @@ describe('AIService', () => {
     })
 
     it('should implement getProviderName method', async () => {
-      process.env.GOOGLE_AI_API_KEY = 'test-key'
-      vi.resetModules()
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-key'
       const { createAIService } = await import('../ai-service.js')
       const service = createAIService()
 
@@ -173,8 +171,7 @@ describe('AIService', () => {
 
   describe('Text summarization behavior', () => {
     it('should handle empty text', async () => {
-      process.env.GOOGLE_AI_API_KEY = 'test-key'
-      vi.resetModules()
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-key'
       const { createAIService } = await import('../ai-service.js')
       const service = createAIService()
 
@@ -184,8 +181,7 @@ describe('AIService', () => {
     })
 
     it('should handle whitespace-only text', async () => {
-      process.env.GOOGLE_AI_API_KEY = 'test-key'
-      vi.resetModules()
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-key'
       const { createAIService } = await import('../ai-service.js')
       const service = createAIService()
 
@@ -199,7 +195,7 @@ describe('AIService', () => {
         text: 'Short text',
       })
 
-      process.env.GOOGLE_AI_API_KEY = 'test-key'
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-key'
       const { GoogleAIService } = await import('../ai-service.js')
       const service = new GoogleAIService('test-key')
 
