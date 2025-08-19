@@ -48,6 +48,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/frontend/package.json ./apps/frontend/
 COPY apps/backend/package.json ./apps/backend/
 COPY packages/shared/package.json ./packages/shared/
+RUN ls -R /app
 
 # Install production dependencies only
 RUN pnpm install --frozen-lockfile --prod
@@ -66,4 +67,3 @@ EXPOSE 3000 3030
 
 # Start the backend server
 CMD ["node", "apps/backend/dist/index.js"]
-
