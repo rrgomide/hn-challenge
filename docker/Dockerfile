@@ -19,6 +19,11 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
+# Build stage for shared package
+FROM base AS shared-builder
+WORKDIR /app
+RUN pnpm --filter @hn-challenge/shared build
+
 # Build stage for frontend
 FROM base AS frontend-builder
 WORKDIR /app
@@ -51,9 +56,14 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=frontend-builder /app/apps/frontend/build ./apps/frontend/build
 COPY --from=backend-builder /app/apps/backend/dist ./apps/backend/dist
 
-# Copy shared package
-COPY packages/shared ./packages/shared
+# Copy built shared package
+COPY --from=shared-builder /app/packages/shared/dist ./packages/shared/dist
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/shared/tsconfig.json ./packages/shared/
 
 # Expose ports
 EXPOSE 3000 3030
+
+# Start the backend server
+CMD ["node", "apps/backend/dist/index.js"]
 
