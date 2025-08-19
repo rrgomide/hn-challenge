@@ -152,6 +152,7 @@ describe('AIService', () => {
   describe('AIService interface compliance', () => {
     it('should implement summarizeText method', async () => {
       process.env.GOOGLE_AI_API_KEY = 'test-key'
+      vi.resetModules()
       const { createAIService } = await import('../ai-service.js')
       const service = createAIService()
 
@@ -161,6 +162,7 @@ describe('AIService', () => {
 
     it('should implement getProviderName method', async () => {
       process.env.GOOGLE_AI_API_KEY = 'test-key'
+      vi.resetModules()
       const { createAIService } = await import('../ai-service.js')
       const service = createAIService()
 
@@ -172,6 +174,7 @@ describe('AIService', () => {
   describe('Text summarization behavior', () => {
     it('should handle empty text', async () => {
       process.env.GOOGLE_AI_API_KEY = 'test-key'
+      vi.resetModules()
       const { createAIService } = await import('../ai-service.js')
       const service = createAIService()
 
@@ -182,6 +185,7 @@ describe('AIService', () => {
 
     it('should handle whitespace-only text', async () => {
       process.env.GOOGLE_AI_API_KEY = 'test-key'
+      vi.resetModules()
       const { createAIService } = await import('../ai-service.js')
       const service = createAIService()
 

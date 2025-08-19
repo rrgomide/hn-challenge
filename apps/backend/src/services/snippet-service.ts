@@ -1,34 +1,45 @@
-import { Snippet, CreateSnippetRequest } from '../models/snippet.js';
-import { randomUUID } from 'crypto';
+import { Snippet, CreateSnippetRequest } from '../models/snippet.js'
+import { randomUUID } from 'crypto'
+import { AIService, createAIService } from './ai-service.js'
 
 export class SnippetService {
-  private snippets: Map<string, Snippet> = new Map();
+  private snippets: Map<string, Snippet> = new Map()
+  private aiService: AIService | null = null
+
+  constructor() {
+    try {
+      this.aiService = createAIService()
+    } catch (error) {
+      console.error('Error creating AI service:', error)
+      this.aiService = null
+    }
+  }
 
   async createSnippet(request: CreateSnippetRequest): Promise<Snippet> {
-    const id = randomUUID();
-    const summary = this.generateSummary(request.text);
-    
+    const id = randomUUID()
+    const summary = await this.generateSummary(request.text)
+    console.debug('🔥 ~ summary:', summary)
+
     const snippet: Snippet = {
       id,
       text: request.text,
-      summary
-    };
+      summary,
+    }
 
-    this.snippets.set(id, snippet);
-    return snippet;
+    this.snippets.set(id, snippet)
+    return snippet
   }
 
   async getSnippetById(id: string): Promise<Snippet | null> {
-    return this.snippets.get(id) || null;
+    return this.snippets.get(id) || null
   }
 
-  private generateSummary(text: string): string {
-    const words = text.trim().split(/\s+/);
-    
-    if (words.length <= 10) {
-      return text;
+  private async generateSummary(text: string): Promise<string> {
+    if (!this.aiService) {
+      throw new Error('AI service not initialized')
     }
-    
-    return words.slice(0, 10).join(' ') + '...';
+
+    const summary = await this.aiService.summarizeText(text)
+    return summary
   }
 }

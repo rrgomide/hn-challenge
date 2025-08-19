@@ -1,5 +1,6 @@
 import { google } from '@ai-sdk/google'
 import { openai } from '@ai-sdk/openai'
+import { sanitizeJsonString } from '@hn-challenge/shared'
 import { generateText } from 'ai'
 
 export interface AIService {
@@ -19,12 +20,14 @@ export class GoogleAIService implements AIService {
       throw new Error('Text cannot be empty')
     }
 
+    const sanitizedText = sanitizeJsonString(text)
+
     try {
       const model = google('gemini-1.5-flash')
 
       const { text: summary } = await generateText({
         model,
-        prompt: `Summarize the following text in a concise way (maximum 2-3 sentences): ${text}`
+        prompt: `Summarize the following text in a concise way (maximum 30 words): ${sanitizedText}`,
       })
 
       return summary
@@ -56,7 +59,7 @@ export class OpenAIService implements AIService {
 
       const { text: summary } = await generateText({
         model,
-        prompt: `Summarize the following text in a concise way (maximum 2-3 sentences): ${text}`
+        prompt: `Summarize the following text in a concise way (maximum 30 words): ${text}`,
       })
 
       return summary
@@ -72,7 +75,7 @@ export class OpenAIService implements AIService {
 }
 
 export function createAIService(): AIService {
-  const googleApiKey = process.env.GOOGLE_AI_API_KEY
+  const googleApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
   const openaiApiKey = process.env.OPENAI_API_KEY
 
   // Prioritize Google AI first
