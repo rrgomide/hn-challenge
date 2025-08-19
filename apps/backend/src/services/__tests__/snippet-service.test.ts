@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { SnippetService } from '../snippetService.js';
+import { SnippetService } from '../snippet-service.js';
 
 describe('SnippetService', () => {
   let snippetService: SnippetService;

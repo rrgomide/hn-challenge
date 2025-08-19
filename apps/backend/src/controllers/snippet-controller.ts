@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { SnippetService } from '../services/snippetService'
+import { SnippetService } from '../services/snippet-service.js'
 import { CreateSnippetRequest } from '../models/snippet'
 
 export class SnippetController {

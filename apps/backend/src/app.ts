@@ -1,6 +1,6 @@
 import express, { Express } from 'express'
 import { greet } from '@hn-challenge/shared'
-import { SnippetController } from './controllers/snippetController.js'
+import { SnippetController } from './controllers/snippet-controller.js'
 import { generateText } from 'ai'
 import { google } from '@ai-sdk/google'
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Request, Response } from 'express';
-import { SnippetController } from '../snippetController.js';
+import { SnippetController } from '../snippet-controller.js';
 
 describe('SnippetController', () => {
   let controller: SnippetController;
