@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 import request from 'supertest'
+import { Express } from 'express'
 
 // Mock the AI service module before any imports
 const mockSummarizeText = vi.fn()
@@ -10,13 +11,53 @@ vi.mock('../services/ai-service.js', () => ({
   })
 }))
 
+// Mock MongoDB repository to use in-memory storage for tests
+const mockRepository = {
+  snippets: new Map(),
+  async create(snippet: any) {
+    this.snippets.set(snippet.id, snippet)
+    return snippet
+  },
+  async findById(id: string) {
+    return this.snippets.get(id) || null
+  },
+  async findAll() {
+    return Array.from(this.snippets.values())
+  },
+  async update(id: string, updates: any) {
+    const existing = this.snippets.get(id)
+    if (!existing) return null
+    const updated = { ...existing, ...updates }
+    this.snippets.set(id, updated)
+    return updated
+  },
+  async delete(id: string) {
+    return this.snippets.delete(id)
+  }
+}
+
+vi.mock('../repositories/mongodb-snippet-repository.js', () => ({
+  MongoDbSnippetRepository: vi.fn(() => mockRepository)
+}))
+
+vi.mock('../config/database.js', () => ({
+  DatabaseConnection: {
+    getInstance: () => ({
+      connect: async () => ({}),
+      getDb: () => ({})
+    })
+  }
+}))
+
 import { defineControllers } from '../app.js'
 
 describe('POST /snippets integration tests', () => {
-  const app = defineControllers()
+  let app: Express
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    app = await defineControllers()
     vi.clearAllMocks()
+    mockRepository.snippets.clear()
   })
 
   it('should create a snippet and return 200 with correct response format', async () => {
@@ -223,11 +264,82 @@ describe('POST /snippets integration tests', () => {
   })
 })
 
-describe('GET /snippets/:id integration tests', () => {
-  const app = defineControllers()
+describe('GET /snippets integration tests', () => {
+  let app: Express
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    app = await defineControllers()
     vi.clearAllMocks()
+    mockRepository.snippets.clear()
+  })
+
+  it('should return empty array when no snippets exist', async () => {
+    const response = await request(app)
+      .get('/snippets')
+      .expect(200)
+
+    expect(response.body).toEqual([])
+  })
+
+  it('should return all snippets', async () => {
+    const aiSummary1 = 'AI summary for snippet 1'
+    const aiSummary2 = 'AI summary for snippet 2'
+    
+    mockSummarizeText
+      .mockResolvedValueOnce(aiSummary1)
+      .mockResolvedValueOnce(aiSummary2)
+
+    // Create first snippet
+    const createResponse1 = await request(app)
+      .post('/snippets')
+      .send({ text: 'First test snippet' })
+      .expect(200)
+
+    // Create second snippet
+    const createResponse2 = await request(app)
+      .post('/snippets')
+      .send({ text: 'Second test snippet' })
+      .expect(200)
+
+    // Get all snippets
+    const getResponse = await request(app)
+      .get('/snippets')
+      .expect(200)
+
+    expect(getResponse.body).toHaveLength(2)
+    expect(getResponse.body).toEqual(
+      expect.arrayContaining([
+        {
+          id: createResponse1.body.id,
+          text: 'First test snippet',
+          summary: aiSummary1
+        },
+        {
+          id: createResponse2.body.id,
+          text: 'Second test snippet',
+          summary: aiSummary2
+        }
+      ])
+    )
+  })
+
+  it('should return correct content type for JSON response', async () => {
+    const response = await request(app)
+      .get('/snippets')
+      .expect(200)
+
+    expect(response.headers['content-type']).toMatch(/json/)
+    expect(Array.isArray(response.body)).toBe(true)
+  })
+})
+
+describe('GET /snippets/:id integration tests', () => {
+  let app: Express
+
+  beforeAll(async () => {
+    app = await defineControllers()
+    vi.clearAllMocks()
+    mockRepository.snippets.clear()
   })
 
   it('should return 404 when snippet does not exist', async () => {
@@ -254,10 +366,10 @@ describe('GET /snippets/:id integration tests', () => {
     })
   })
 
-  it('should return 404 when accessing /snippets/ without ID', async () => {
+  it('should return all snippets when accessing /snippets/', async () => {
     await request(app)
       .get('/snippets/')
-      .expect(404) // This will be a 404 from Express router, not our handler
+      .expect(200) // This now routes to GET /snippets endpoint
   })
 
   it('should return a snippet when valid ID exists', async () => {

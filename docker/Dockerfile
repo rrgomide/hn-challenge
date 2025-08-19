@@ -19,51 +19,35 @@ RUN pnpm install --frozen-lockfile
 # Copy source code
 COPY . .
 
-# Build stage for shared package
-FROM base AS shared-builder
-WORKDIR /app
+# Build shared package first
 RUN pnpm --filter @hn-challenge/shared build
 
-# Build stage for frontend
-FROM base AS frontend-builder
-WORKDIR /app
-RUN pnpm --filter @hn-challenge/frontend build
+# Backend production stage
+FROM base AS backend
 
-# Build stage for backend
-FROM base AS backend-builder
-WORKDIR /app
+# Build backend
 RUN pnpm --filter @hn-challenge/backend build
 
-# Production stage
-FROM node:20-alpine AS production
-
-# Install pnpm
-RUN npm install -g pnpm
-
-# Create app directory
-WORKDIR /app
-
-# Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/frontend/package.json ./apps/frontend/
-COPY apps/backend/package.json ./apps/backend/
-COPY packages/shared/package.json ./packages/shared/
-RUN ls -R /app
-
-# Install production dependencies only
+# Install only production dependencies
 RUN pnpm install --frozen-lockfile --prod
 
-# Copy built applications
-COPY --from=frontend-builder /app/apps/frontend/build ./apps/frontend/build
-COPY --from=backend-builder /app/apps/backend/dist ./apps/backend/dist
-
-# Copy built shared package
-COPY --from=shared-builder /app/packages/shared/dist ./packages/shared/dist
-COPY packages/shared/package.json ./packages/shared/
-COPY packages/shared/tsconfig.json ./packages/shared/
-
-# Expose ports
-EXPOSE 3000 3030
+# Expose backend port
+EXPOSE 3000
 
 # Start the backend server
-CMD ["node", "apps/backend/dist/index.js"]
+CMD ["pnpm", "--filter", "@hn-challenge/backend", "start"]
+
+# Frontend production stage  
+FROM base AS frontend
+
+# Build frontend
+RUN pnpm --filter @hn-challenge/frontend build
+
+# Install only production dependencies
+RUN pnpm install --frozen-lockfile --prod
+
+# Expose frontend port
+EXPOSE 3030
+
+# Start the frontend server
+CMD ["pnpm", "--filter", "@hn-challenge/frontend", "start"]

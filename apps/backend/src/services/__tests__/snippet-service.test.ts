@@ -11,12 +11,38 @@ vi.mock('../ai-service.js', () => ({
 
 import { SnippetService } from '../snippet-service.js'
 
+// Mock repository for testing
+const mockRepository = {
+  snippets: new Map(),
+  async create(snippet: any) {
+    this.snippets.set(snippet.id, snippet)
+    return snippet
+  },
+  async findById(id: string) {
+    return this.snippets.get(id) || null
+  },
+  async findAll() {
+    return Array.from(this.snippets.values())
+  },
+  async update(id: string, updates: any) {
+    const existing = this.snippets.get(id)
+    if (!existing) return null
+    const updated = { ...existing, ...updates }
+    this.snippets.set(id, updated)
+    return updated
+  },
+  async delete(id: string) {
+    return this.snippets.delete(id)
+  }
+}
+
 describe('SnippetService', () => {
   let snippetService: SnippetService
 
   beforeEach(() => {
     vi.clearAllMocks()
-    snippetService = new SnippetService()
+    mockRepository.snippets.clear()
+    snippetService = new SnippetService(mockRepository as any)
   })
 
   describe('createSnippet', () => {
@@ -143,7 +169,25 @@ describe('SnippetService', () => {
       }))
       
       // This should not throw during construction, but log an error
-      expect(() => new SnippetService()).not.toThrow()
+      expect(() => new SnippetService(mockRepository as any)).not.toThrow()
+    })
+
+    it('should add getAllSnippets method', async () => {
+      mockSummarizeText
+        .mockResolvedValueOnce('First snippet summary')
+        .mockResolvedValueOnce('Second snippet summary')
+      
+      const request1 = { text: 'First snippet' }
+      const request2 = { text: 'Second snippet' }
+      
+      await snippetService.createSnippet(request1)
+      await snippetService.createSnippet(request2)
+      
+      const allSnippets = await snippetService.getAllSnippets()
+      
+      expect(allSnippets).toHaveLength(2)
+      expect(allSnippets[0].text).toBe('First snippet')
+      expect(allSnippets[1].text).toBe('Second snippet')
     })
   })
 })

@@ -5,8 +5,8 @@ import { CreateSnippetRequest } from '../models/snippet'
 export class SnippetController {
   private snippetService: SnippetService
 
-  constructor() {
-    this.snippetService = new SnippetService()
+  constructor(snippetService: SnippetService) {
+    this.snippetService = snippetService
   }
 
   private sanitizeText(text: string): string {
@@ -64,6 +64,16 @@ export class SnippetController {
       res.json(snippet)
     } catch (error) {
       console.error('Error retrieving snippet:', error)
+      res.status(500).json({ error: 'Internal server error' })
+    }
+  }
+
+  async getAllSnippets(req: Request, res: Response): Promise<void> {
+    try {
+      const snippets = await this.snippetService.getAllSnippets()
+      res.json(snippets)
+    } catch (error) {
+      console.error('Error retrieving all snippets:', error)
       res.status(500).json({ error: 'Internal server error' })
     }
   }

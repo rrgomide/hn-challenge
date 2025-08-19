@@ -11,6 +11,32 @@ vi.mock('../../services/ai-service.js', () => ({
 }))
 
 import { SnippetController } from '../snippet-controller.js'
+import { SnippetService } from '../../services/snippet-service.js'
+
+// Mock repository for testing
+const mockRepository = {
+  snippets: new Map(),
+  async create(snippet: any) {
+    this.snippets.set(snippet.id, snippet)
+    return snippet
+  },
+  async findById(id: string) {
+    return this.snippets.get(id) || null
+  },
+  async findAll() {
+    return Array.from(this.snippets.values())
+  },
+  async update(id: string, updates: any) {
+    const existing = this.snippets.get(id)
+    if (!existing) return null
+    const updated = { ...existing, ...updates }
+    this.snippets.set(id, updated)
+    return updated
+  },
+  async delete(id: string) {
+    return this.snippets.delete(id)
+  }
+}
 
 describe('SnippetController', () => {
   let controller: SnippetController
@@ -22,7 +48,9 @@ describe('SnippetController', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSummarizeText.mockResolvedValue('Mocked AI summary')
-    controller = new SnippetController()
+    mockRepository.snippets.clear()
+    const snippetService = new SnippetService(mockRepository as any)
+    controller = new SnippetController(snippetService)
     mockJson = vi.fn()
     mockStatus = vi.fn().mockReturnValue({ json: mockJson })
 

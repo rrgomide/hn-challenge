@@ -9,7 +9,10 @@
     "typecheck": "pnpm run --recursive typecheck",
     "typegen": "react-router typegen",
     "test:backend": "pnpm --filter @hn-challenge/backend test",
-    "test:frontend": "pnpm --filter @hn-challenge/frontend test"
+    "test:frontend": "pnpm --filter @hn-challenge/frontend test",
+    "docker:up": "cd docker && docker compose up --build",
+    "docker:down": "cd docker && docker compose down",
+    "docker:logs": "cd docker && docker compose logs -f"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

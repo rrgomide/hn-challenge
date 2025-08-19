@@ -134,3 +134,6 @@ yarn.lock
 
 # Claude AI files
 .claude/
+
+# Google AI key
+google_ai_key.txt

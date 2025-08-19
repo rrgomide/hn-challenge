@@ -1,12 +1,14 @@
 import { Snippet, CreateSnippetRequest } from '../models/snippet.js'
 import { randomUUID } from 'crypto'
 import { AIService, createAIService } from './ai-service.js'
+import { SnippetRepository } from '../repositories/snippet-repository.js'
 
 export class SnippetService {
-  private snippets: Map<string, Snippet> = new Map()
   private aiService: AIService | null = null
+  private repository: SnippetRepository
 
-  constructor() {
+  constructor(repository: SnippetRepository) {
+    this.repository = repository
     try {
       this.aiService = createAIService()
     } catch (error) {
@@ -26,12 +28,15 @@ export class SnippetService {
       summary,
     }
 
-    this.snippets.set(id, snippet)
-    return snippet
+    return await this.repository.create(snippet)
   }
 
   async getSnippetById(id: string): Promise<Snippet | null> {
-    return this.snippets.get(id) || null
+    return await this.repository.findById(id)
+  }
+
+  async getAllSnippets(): Promise<Snippet[]> {
+    return await this.repository.findAll()
   }
 
   private async generateSummary(text: string): Promise<string> {
