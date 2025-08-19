@@ -26,7 +26,7 @@ services:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://admin:password123@mongodb:27017/hn_challenge?authSource=admin
     env_file:
-      - google_ai_key.txt
+      - ../apps/backend/.env
     restart: unless-stopped
     depends_on:
       - mongodb
