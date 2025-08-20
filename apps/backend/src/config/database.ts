@@ -22,9 +22,16 @@ export class DatabaseConnection {
       return this.db
     }
 
-    console.log(process.env.NODE_ENV, process.env.MONGODB_URI)
+    const isDevelopment = process.env.NODE_ENV === 'development'
 
-    const connectionString = process.env.MONGODB_URI
+    const connectionString = isDevelopment
+      ? process.env.MONGODB_URI_DEV
+      : process.env.MONGODB_URI_PROD
+
+    console.log('🔥 ~ connectionString:', {
+      connectionString,
+      isDevelopment,
+    })
 
     try {
       if (!connectionString) {

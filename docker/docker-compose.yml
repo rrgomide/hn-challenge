@@ -6,8 +6,6 @@ services:
       - '27017:27017'
     env_file:
       - ../apps/backend/.env
-    environment:
-      - DB_HOST=mongodb
     volumes:
       - mongodb_data:/data/db
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js

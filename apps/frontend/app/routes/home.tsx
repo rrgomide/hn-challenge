@@ -3,12 +3,7 @@ import { Sidebar } from '../components/sidebar.js'
 import { MainContent } from '../components/main-content.js'
 import { Header } from '../components/header.js'
 import { useTheme } from '../contexts/theme-context.js'
-
-interface Snippet {
-  id: string
-  text: string
-  summary: string
-}
+import { Snippet } from '@hn-challenge/shared'
 
 export function meta() {
   return [

@@ -2,12 +2,7 @@ import { useState, useEffect } from "react"
 import { ScrollArea } from "./ui/scroll-area.js"
 import { Button } from "./ui/button.js"
 import { Plus, MessageSquare } from "lucide-react"
-
-interface Snippet {
-  id: string
-  text: string
-  summary: string
-}
+import { Snippet } from "@hn-challenge/shared"
 
 interface SidebarProps {
   onNewChat: () => void
@@ -73,6 +68,9 @@ export function Sidebar({ onNewChat, onSelectSnippet, selectedSnippetId }: Sideb
                       </div>
                       <div className="text-xs text-muted-foreground truncate">
                         {snippet.text.length > 50 ? snippet.text.substring(0, 50) + '...' : snippet.text}
+                      </div>
+                      <div className="text-xs text-muted-foreground/70">
+                        {new Date(snippet.updatedAt).toLocaleDateString()}
                       </div>
                     </div>
                   </div>

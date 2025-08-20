@@ -82,6 +82,10 @@ describe('POST /snippets integration tests', () => {
     )
     expect(response.body.text).toBe(requestBody.text)
     expect(response.body.summary).toBe(aiSummary)
+    expect(response.body).toHaveProperty('createdAt')
+    expect(response.body).toHaveProperty('updatedAt')
+    expect(new Date(response.body.createdAt)).toBeInstanceOf(Date)
+    expect(new Date(response.body.updatedAt)).toBeInstanceOf(Date)
     expect(mockSummarizeText).toHaveBeenCalledWith(requestBody.text)
   })
 
@@ -320,16 +324,20 @@ describe('GET /snippets integration tests', () => {
     expect(getResponse.body.limit).toBe(2)
     expect(getResponse.body.data).toEqual(
       expect.arrayContaining([
-        {
+        expect.objectContaining({
           id: createResponse1.body.id,
           text: 'First test snippet',
           summary: aiSummary1,
-        },
-        {
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        }),
+        expect.objectContaining({
           id: createResponse2.body.id,
           text: 'Second test snippet',
           summary: aiSummary2,
-        },
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        }),
       ])
     )
   })
@@ -433,16 +441,20 @@ describe('GET /snippets integration tests', () => {
     // Should contain all fields
     expect(getResponse.body.data).toEqual(
       expect.arrayContaining([
-        {
+        expect.objectContaining({
           id: createResponse1.body.id,
           text: 'First test snippet',
           summary: aiSummary1,
-        },
-        {
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        }),
+        expect.objectContaining({
           id: createResponse2.body.id,
           text: 'Second test snippet',
           summary: aiSummary2,
-        },
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        }),
       ])
     )
   })
@@ -502,11 +514,13 @@ describe('GET /snippets/:id integration tests', () => {
       .get(`/snippets/${snippetId}`)
       .expect(200)
 
-    expect(getResponse.body).toEqual({
+    expect(getResponse.body).toEqual(expect.objectContaining({
       id: snippetId,
       text: 'Test snippet for retrieval',
       summary: aiSummary,
-    })
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
+    }))
   })
 
   it('should return correct snippet with long text and summary', async () => {
@@ -528,11 +542,13 @@ describe('GET /snippets/:id integration tests', () => {
       .get(`/snippets/${snippetId}`)
       .expect(200)
 
-    expect(getResponse.body).toEqual({
+    expect(getResponse.body).toEqual(expect.objectContaining({
       id: snippetId,
       text: longText,
       summary: aiSummary,
-    })
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
+    }))
   })
 
   it('should return correct content type for JSON response', async () => {

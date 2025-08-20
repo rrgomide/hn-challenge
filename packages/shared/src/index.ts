@@ -1,3 +1,22 @@
+export interface Snippet {
+  id: string
+  text: string
+  summary: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface CreateSnippetRequest {
+  text: string
+}
+
+export interface SnippetsResponse {
+  data: Partial<Snippet>[]
+  total: number
+  page: number
+  limit: number
+}
+
 export function greet(name: string): string {
   return `Hello, ${name}!`
 }

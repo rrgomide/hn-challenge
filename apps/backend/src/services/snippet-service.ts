@@ -24,11 +24,14 @@ export class SnippetService {
   async createSnippet(request: CreateSnippetRequest): Promise<Snippet> {
     const id = randomUUID()
     const summary = await this.generateSummary(request.text)
+    const now = new Date()
 
     const snippet: Snippet = {
       id,
       text: request.text,
       summary,
+      createdAt: now,
+      updatedAt: now,
     }
 
     return await this.repository.create(snippet)

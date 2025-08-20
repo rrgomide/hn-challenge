@@ -3,12 +3,7 @@ import { Textarea } from "./ui/textarea.js"
 import { Button } from "./ui/button.js"
 import { Send, Loader2 } from "lucide-react"
 import { ScrollArea } from "./ui/scroll-area.js"
-
-interface Snippet {
-  id: string
-  text: string
-  summary: string
-}
+import { Snippet } from "@hn-challenge/shared"
 
 interface MainContentProps {
   selectedSnippet?: Snippet
@@ -54,9 +49,14 @@ export function MainContent({ selectedSnippet, onSnippetCreated }: MainContentPr
             <h2 className="text-xl font-semibold mb-2">
               {selectedSnippet.summary || 'Untitled'}
             </h2>
-            <p className="text-sm text-muted-foreground">
-              Original text: {selectedSnippet.text.length} characters
-            </p>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">
+                Original text: {selectedSnippet.text.length} characters
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Last updated: {new Date(selectedSnippet.updatedAt).toLocaleString()}
+              </p>
+            </div>
           </div>
           
           <ScrollArea className="flex-1 p-6">
