@@ -1,5 +1,5 @@
 import { Moon, Sun, Menu } from 'lucide-react'
-import { Button } from './ui/button.js'
+import { Button } from './ui/button'
 
 interface HeaderProps {
   onToggleTheme?: () => void

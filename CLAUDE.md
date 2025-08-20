@@ -49,7 +49,7 @@ The backend implements a snippet creation API with in-memory storage and basic t
 ### Backend (Express + TypeScript)
 - **Controller-Service pattern**: Controllers handle HTTP concerns, Services contain business logic
 - **In-memory storage**: Uses Map for snippet storage (not persistent)
-- **ESM modules**: All packages use ES modules with .js extensions in imports
+- **ESM modules**: Backend uses ES modules with .js extensions in imports (Node.js ESM requirement)
 - **Error handling**: Standardized error responses with appropriate HTTP status codes
 
 ### Frontend (React Router v7)
@@ -72,7 +72,8 @@ Docker configuration is available in the `docker/` directory:
 
 ## Important Notes
 
-- All packages use **ES modules** - import statements must use `.js` extensions
+- **Backend** uses **ES modules** - import statements MUST use `.js` extensions for Node.js ESM compatibility
+- **Frontend** uses **ES modules** - import statements should NOT use `.js` extensions (bundler handles resolution)
 - **Build order matters**: Shared package must be built before backend/frontend
 - **pnpm workspace**: Dependencies between packages use `workspace:*` syntax
 - **TypeScript**: Strict mode enabled across all packages

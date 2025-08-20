@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react'
-import { Sidebar } from '../components/sidebar.js'
-import { MainContent } from '../components/main-content.js'
-import { Header } from '../components/header.js'
-import { useTheme } from '../contexts/theme-context.js'
+import { Sidebar } from '../components/sidebar'
+import { MainContent } from '../components/main-content'
+import { Header } from '../components/header'
+import { useTheme } from '../contexts/theme-context'
 import { Snippet } from '@hn-challenge/shared'
 
 export function meta() {

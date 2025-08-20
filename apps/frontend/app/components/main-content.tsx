@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Textarea } from './ui/textarea.js'
-import { Button } from './ui/button.js'
+import { Textarea } from './ui/textarea'
+import { Button } from './ui/button'
 import { Send, Loader2 } from 'lucide-react'
-import { ScrollArea } from './ui/scroll-area.js'
+import { ScrollArea } from './ui/scroll-area'
 import { Snippet } from '@hn-challenge/shared'
 
 interface MainContentProps {

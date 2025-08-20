@@ -2,8 +2,8 @@ import type { LinksFunction } from 'react-router'
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router'
 
 import './tailwind.css'
-import { ThemeProvider } from './contexts/theme-context.js'
-import { ThemeScript } from './components/theme-script.js'
+import { ThemeProvider } from './contexts/theme-context'
+import { ThemeScript } from './components/theme-script'
 
 export const links: LinksFunction = () => [
   { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
