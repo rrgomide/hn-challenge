@@ -1,5 +1,4 @@
 import { defineControllers } from './app.js'
-import 'dotenv/config'
 
 async function startServer() {
   try {

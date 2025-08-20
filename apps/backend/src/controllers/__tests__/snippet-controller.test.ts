@@ -6,8 +6,8 @@ const mockSummarizeText = vi.fn()
 vi.mock('../../services/ai-service.js', () => ({
   createAIService: () => ({
     summarizeText: mockSummarizeText,
-    getProviderName: () => 'test'
-  })
+    getProviderName: () => 'test',
+  }),
 }))
 
 import { SnippetController } from '../snippet-controller.js'
@@ -23,8 +23,12 @@ const mockRepository = {
   async findById(id: string) {
     return this.snippets.get(id) || null
   },
-  async findAll() {
-    return Array.from(this.snippets.values())
+  async findAll(options: { summaryOnly: boolean } = { summaryOnly: false }) {
+    const snippets = Array.from(this.snippets.values())
+    if (options.summaryOnly) {
+      return snippets.map(({ id, summary }) => ({ id, summary }))
+    }
+    return snippets
   },
   async update(id: string, updates: any) {
     const existing = this.snippets.get(id)
@@ -35,7 +39,7 @@ const mockRepository = {
   },
   async delete(id: string) {
     return this.snippets.delete(id)
-  }
+  },
 }
 
 describe('SnippetController', () => {
@@ -196,7 +200,7 @@ describe('SnippetController', () => {
         const htmlText = '<script>alert("xss")</script>Hello <b>world</b>!'
         const expectedSanitizedText = 'Hello world!'
         mockSummarizeText.mockResolvedValue('Sanitized text summary')
-        
+
         mockRequest.body = { text: htmlText }
 
         await controller.createSnippet(
@@ -214,10 +218,11 @@ describe('SnippetController', () => {
       })
 
       it('should remove potentially dangerous script tags', async () => {
-        const maliciousText = '<script>document.cookie</script>Safe content here'
+        const maliciousText =
+          '<script>document.cookie</script>Safe content here'
         const expectedSanitizedText = 'Safe content here'
         mockSummarizeText.mockResolvedValue('Safe summary')
-        
+
         mockRequest.body = { text: maliciousText }
 
         await controller.createSnippet(
@@ -233,10 +238,11 @@ describe('SnippetController', () => {
       })
 
       it('should handle text with multiple HTML elements', async () => {
-        const complexHtml = '<div>Content <span>with</span> <img src="x" onerror="alert(1)"> nested <p>elements</p></div>'
+        const complexHtml =
+          '<div>Content <span>with</span> <img src="x" onerror="alert(1)"> nested <p>elements</p></div>'
         const expectedSanitizedText = 'Content with nested elements'
         mockSummarizeText.mockResolvedValue('Complex summary')
-        
+
         mockRequest.body = { text: complexHtml }
 
         await controller.createSnippet(
@@ -254,7 +260,7 @@ describe('SnippetController', () => {
       it('should preserve plain text without HTML', async () => {
         const plainText = 'This is plain text with no HTML tags'
         mockSummarizeText.mockResolvedValue('Plain text summary')
-        
+
         mockRequest.body = { text: plainText }
 
         await controller.createSnippet(
@@ -273,7 +279,7 @@ describe('SnippetController', () => {
         const emptyTagsText = '<div></div><span></span>Actual content<p></p>'
         const expectedSanitizedText = 'Actual content'
         mockSummarizeText.mockResolvedValue('Empty tags summary')
-        
+
         mockRequest.body = { text: emptyTagsText }
 
         await controller.createSnippet(
@@ -292,7 +298,7 @@ describe('SnippetController', () => {
         const whitespaceText = '  <div>  Content  </div>  '
         const expectedSanitizedText = 'Content'
         mockSummarizeText.mockResolvedValue('Trimmed summary')
-        
+
         mockRequest.body = { text: whitespaceText }
 
         await controller.createSnippet(

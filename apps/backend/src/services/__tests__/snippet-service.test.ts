@@ -5,8 +5,8 @@ const mockSummarizeText = vi.fn()
 vi.mock('../ai-service.js', () => ({
   createAIService: () => ({
     summarizeText: mockSummarizeText,
-    getProviderName: () => 'test'
-  })
+    getProviderName: () => 'test',
+  }),
 }))
 
 import { SnippetService } from '../snippet-service.js'
@@ -21,8 +21,12 @@ const mockRepository = {
   async findById(id: string) {
     return this.snippets.get(id) || null
   },
-  async findAll() {
-    return Array.from(this.snippets.values())
+  async findAll(options: { summaryOnly: boolean } = { summaryOnly: false }) {
+    const snippets = Array.from(this.snippets.values())
+    if (options.summaryOnly) {
+      return snippets.map(({ id, summary }) => ({ id, summary }))
+    }
+    return snippets
   },
   async update(id: string, updates: any) {
     const existing = this.snippets.get(id)
@@ -33,7 +37,7 @@ const mockRepository = {
   },
   async delete(id: string) {
     return this.snippets.delete(id)
-  }
+  },
 }
 
 describe('SnippetService', () => {
@@ -49,24 +53,27 @@ describe('SnippetService', () => {
     it('should create a snippet with id, text, and summary', async () => {
       mockSummarizeText.mockResolvedValue('This is a test snippet')
       const request = { text: 'This is a test snippet' }
-      
+
       const result = await snippetService.createSnippet(request)
-      
+
       expect(result).toHaveProperty('id')
-      expect(result.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+      expect(result.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      )
       expect(result.text).toBe('This is a test snippet')
       expect(result.summary).toBe('This is a test snippet')
       expect(mockSummarizeText).toHaveBeenCalledWith('This is a test snippet')
     })
 
     it('should generate AI summary for long text', async () => {
-      const longText = 'This is a very long text that contains more than ten words and should be summarized by AI'
+      const longText =
+        'This is a very long text that contains more than ten words and should be summarized by AI'
       const aiSummary = 'AI generated summary of the long text'
       mockSummarizeText.mockResolvedValue(aiSummary)
       const request = { text: longText }
-      
+
       const result = await snippetService.createSnippet(request)
-      
+
       expect(result.text).toBe(longText)
       expect(result.summary).toBe(aiSummary)
       expect(mockSummarizeText).toHaveBeenCalledWith(longText)
@@ -77,9 +84,9 @@ describe('SnippetService', () => {
       const aiSummary = 'AI summary of short text'
       mockSummarizeText.mockResolvedValue(aiSummary)
       const request = { text: shortText }
-      
+
       const result = await snippetService.createSnippet(request)
-      
+
       expect(result.summary).toBe(aiSummary)
       expect(mockSummarizeText).toHaveBeenCalledWith(shortText)
     })
@@ -87,10 +94,11 @@ describe('SnippetService', () => {
     it('should handle empty text', async () => {
       mockSummarizeText.mockRejectedValue(new Error('Text cannot be empty'))
       const request = { text: '' }
-      
-      await expect(snippetService.createSnippet(request))
-        .rejects.toThrow('Text cannot be empty')
-      
+
+      await expect(snippetService.createSnippet(request)).rejects.toThrow(
+        'Text cannot be empty'
+      )
+
       expect(mockSummarizeText).toHaveBeenCalledWith('')
     })
 
@@ -98,10 +106,11 @@ describe('SnippetService', () => {
       const whitespaceText = '   \n\t  '
       mockSummarizeText.mockRejectedValue(new Error('Text cannot be empty'))
       const request = { text: whitespaceText }
-      
-      await expect(snippetService.createSnippet(request))
-        .rejects.toThrow('Text cannot be empty')
-      
+
+      await expect(snippetService.createSnippet(request)).rejects.toThrow(
+        'Text cannot be empty'
+      )
+
       expect(mockSummarizeText).toHaveBeenCalledWith(whitespaceText)
     })
 
@@ -109,13 +118,13 @@ describe('SnippetService', () => {
       mockSummarizeText
         .mockResolvedValueOnce('First snippet summary')
         .mockResolvedValueOnce('Second snippet summary')
-      
+
       const request1 = { text: 'First snippet' }
       const request2 = { text: 'Second snippet' }
-      
+
       const result1 = await snippetService.createSnippet(request1)
       const result2 = await snippetService.createSnippet(request2)
-      
+
       expect(result1.id).not.toBe(result2.id)
       expect(result1.summary).toBe('First snippet summary')
       expect(result2.summary).toBe('Second snippet summary')
@@ -124,9 +133,9 @@ describe('SnippetService', () => {
     it('should handle single word text', async () => {
       mockSummarizeText.mockResolvedValue('Hello - single word')
       const request = { text: 'Hello' }
-      
+
       const result = await snippetService.createSnippet(request)
-      
+
       expect(result.text).toBe('Hello')
       expect(result.summary).toBe('Hello - single word')
       expect(mockSummarizeText).toHaveBeenCalledWith('Hello')
@@ -135,9 +144,10 @@ describe('SnippetService', () => {
     it('should handle AI service errors gracefully', async () => {
       mockSummarizeText.mockRejectedValue(new Error('AI service unavailable'))
       const request = { text: 'Test text' }
-      
-      await expect(snippetService.createSnippet(request))
-        .rejects.toThrow('AI service unavailable')
+
+      await expect(snippetService.createSnippet(request)).rejects.toThrow(
+        'AI service unavailable'
+      )
     })
   })
 
@@ -145,16 +155,18 @@ describe('SnippetService', () => {
     it('should return a snippet when it exists', async () => {
       mockSummarizeText.mockResolvedValue('Test summary')
       const request = { text: 'Test snippet' }
-      
+
       const createdSnippet = await snippetService.createSnippet(request)
-      const retrievedSnippet = await snippetService.getSnippetById(createdSnippet.id)
-      
+      const retrievedSnippet = await snippetService.getSnippetById(
+        createdSnippet.id
+      )
+
       expect(retrievedSnippet).toEqual(createdSnippet)
     })
 
     it('should return null when snippet does not exist', async () => {
       const result = await snippetService.getSnippetById('non-existent-id')
-      
+
       expect(result).toBeNull()
     })
   })
@@ -165,9 +177,9 @@ describe('SnippetService', () => {
       vi.doMock('../ai-service.js', () => ({
         createAIService: () => {
           throw new Error('AI service init failed')
-        }
+        },
       }))
-      
+
       // This should not throw during construction, but log an error
       expect(() => new SnippetService(mockRepository as any)).not.toThrow()
     })
@@ -176,18 +188,18 @@ describe('SnippetService', () => {
       mockSummarizeText
         .mockResolvedValueOnce('First snippet summary')
         .mockResolvedValueOnce('Second snippet summary')
-      
+
       const request1 = { text: 'First snippet' }
       const request2 = { text: 'Second snippet' }
-      
+
       await snippetService.createSnippet(request1)
       await snippetService.createSnippet(request2)
-      
+
       const allSnippets = await snippetService.getAllSnippets()
-      
-      expect(allSnippets).toHaveLength(2)
-      expect(allSnippets[0].text).toBe('First snippet')
-      expect(allSnippets[1].text).toBe('Second snippet')
+
+      expect(allSnippets.data).toHaveLength(2)
+      expect(allSnippets.data[0].text).toBe('First snippet')
+      expect(allSnippets.data[1].text).toBe('Second snippet')
     })
   })
 })

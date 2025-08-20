@@ -7,8 +7,8 @@ const mockSummarizeText = vi.fn()
 vi.mock('../services/ai-service.js', () => ({
   createAIService: () => ({
     summarizeText: mockSummarizeText,
-    getProviderName: () => 'test'
-  })
+    getProviderName: () => 'test',
+  }),
 }))
 
 // Mock MongoDB repository to use in-memory storage for tests
@@ -21,8 +21,12 @@ const mockRepository = {
   async findById(id: string) {
     return this.snippets.get(id) || null
   },
-  async findAll() {
-    return Array.from(this.snippets.values())
+  async findAll(options: { summaryOnly: boolean } = { summaryOnly: false }) {
+    const snippets = Array.from(this.snippets.values())
+    if (options.summaryOnly) {
+      return snippets.map(({ id, summary }) => ({ id, summary }))
+    }
+    return snippets
   },
   async update(id: string, updates: any) {
     const existing = this.snippets.get(id)
@@ -33,20 +37,20 @@ const mockRepository = {
   },
   async delete(id: string) {
     return this.snippets.delete(id)
-  }
+  },
 }
 
 vi.mock('../repositories/mongodb-snippet-repository.js', () => ({
-  MongoDbSnippetRepository: vi.fn(() => mockRepository)
+  MongoDbSnippetRepository: vi.fn(() => mockRepository),
 }))
 
 vi.mock('../config/database.js', () => ({
   DatabaseConnection: {
     getInstance: () => ({
       connect: async () => ({}),
-      getDb: () => ({})
-    })
-  }
+      getDb: () => ({}),
+    }),
+  },
 }))
 
 import { defineControllers } from '../app.js'
@@ -142,7 +146,8 @@ describe('POST /snippets integration tests', () => {
   it('should handle special characters in text', async () => {
     const specialText =
       'Special chars: !@#$%^&*()_+{}|:"<>?[]\\;\',./ àáâãäåæçèéêë'
-    const expectedSanitizedText = 'Special chars: !@#$%^&*()_+{}|:"?[]\\;\',./ àáâãäåæçèéêë' // < and > are removed
+    const expectedSanitizedText =
+      'Special chars: !@#$%^&*()_+{}|:"?[]\\;\',./ àáâãäåæçèéêë' // < and > are removed
     const requestBody = { text: specialText }
     const aiSummary = 'AI summary for special characters'
     mockSummarizeText.mockResolvedValue(aiSummary)
@@ -191,7 +196,7 @@ describe('POST /snippets integration tests', () => {
   it('should handle JSON content-type correctly', async () => {
     const aiSummary = 'AI summary for content type test'
     mockSummarizeText.mockResolvedValue(aiSummary)
-    
+
     const response = await request(app)
       .post('/snippets')
       .set('Content-Type', 'application/json')
@@ -205,7 +210,7 @@ describe('POST /snippets integration tests', () => {
   it('should return proper JSON response format', async () => {
     const aiSummary = 'AI summary for JSON format test'
     mockSummarizeText.mockResolvedValue(aiSummary)
-    
+
     const response = await request(app)
       .post('/snippets')
       .send({ text: 'JSON format test' })
@@ -234,7 +239,8 @@ describe('POST /snippets integration tests', () => {
     })
 
     it('should handle malicious script injection attempts', async () => {
-      const maliciousText = '<img src="x" onerror="alert(document.cookie)">Safe content'
+      const maliciousText =
+        '<img src="x" onerror="alert(document.cookie)">Safe content'
       const expectedSanitizedText = 'Safe content'
       const aiSummary = 'Safe integration summary'
       mockSummarizeText.mockResolvedValue(aiSummary)
@@ -249,7 +255,8 @@ describe('POST /snippets integration tests', () => {
     })
 
     it('should normalize whitespace after HTML removal', async () => {
-      const messyHtml = '  <div>  Multiple   </div>  <span>    spaces   </span>  '
+      const messyHtml =
+        '  <div>  Multiple   </div>  <span>    spaces   </span>  '
       const expectedSanitizedText = 'Multiple spaces'
       const aiSummary = 'Normalized whitespace summary'
       mockSummarizeText.mockResolvedValue(aiSummary)
@@ -274,17 +281,20 @@ describe('GET /snippets integration tests', () => {
   })
 
   it('should return empty array when no snippets exist', async () => {
-    const response = await request(app)
-      .get('/snippets')
-      .expect(200)
+    const response = await request(app).get('/snippets').expect(200)
 
-    expect(response.body).toEqual([])
+    expect(response.body).toEqual({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 0,
+    })
   })
 
   it('should return all snippets', async () => {
     const aiSummary1 = 'AI summary for snippet 1'
     const aiSummary2 = 'AI summary for snippet 2'
-    
+
     mockSummarizeText
       .mockResolvedValueOnce(aiSummary1)
       .mockResolvedValueOnce(aiSummary2)
@@ -302,34 +312,139 @@ describe('GET /snippets integration tests', () => {
       .expect(200)
 
     // Get all snippets
-    const getResponse = await request(app)
-      .get('/snippets')
-      .expect(200)
+    const getResponse = await request(app).get('/snippets').expect(200)
 
-    expect(getResponse.body).toHaveLength(2)
-    expect(getResponse.body).toEqual(
+    expect(getResponse.body.data).toHaveLength(2)
+    expect(getResponse.body.total).toBe(2)
+    expect(getResponse.body.page).toBe(1)
+    expect(getResponse.body.limit).toBe(2)
+    expect(getResponse.body.data).toEqual(
       expect.arrayContaining([
         {
           id: createResponse1.body.id,
           text: 'First test snippet',
-          summary: aiSummary1
+          summary: aiSummary1,
         },
         {
           id: createResponse2.body.id,
           text: 'Second test snippet',
-          summary: aiSummary2
-        }
+          summary: aiSummary2,
+        },
       ])
     )
   })
 
   it('should return correct content type for JSON response', async () => {
-    const response = await request(app)
-      .get('/snippets')
-      .expect(200)
+    const response = await request(app).get('/snippets').expect(200)
 
     expect(response.headers['content-type']).toMatch(/json/)
-    expect(Array.isArray(response.body)).toBe(true)
+    expect(response.body).toHaveProperty('data')
+    expect(response.body).toHaveProperty('total')
+    expect(response.body).toHaveProperty('page')
+    expect(response.body).toHaveProperty('limit')
+  })
+
+  it('should return only summaries when onlySummaries=true', async () => {
+    // Clear the mock repository before this test
+    mockRepository.snippets.clear()
+
+    const aiSummary1 = 'AI summary for snippet 1'
+    const aiSummary2 = 'AI summary for snippet 2'
+
+    mockSummarizeText
+      .mockResolvedValueOnce(aiSummary1)
+      .mockResolvedValueOnce(aiSummary2)
+
+    // Create first snippet
+    const createResponse1 = await request(app)
+      .post('/snippets')
+      .send({ text: 'First test snippet' })
+      .expect(200)
+
+    // Create second snippet
+    const createResponse2 = await request(app)
+      .post('/snippets')
+      .send({ text: 'Second test snippet' })
+      .expect(200)
+
+    // Get snippets with onlySummaries=true
+    const getResponse = await request(app)
+      .get('/snippets?onlySummaries=true')
+      .expect(200)
+
+    expect(getResponse.body.data).toHaveLength(2)
+    expect(getResponse.body.total).toBe(2)
+    expect(getResponse.body.page).toBe(1)
+    expect(getResponse.body.limit).toBe(2)
+
+    // Should only contain id and summary fields
+    expect(getResponse.body.data).toEqual(
+      expect.arrayContaining([
+        {
+          id: createResponse1.body.id,
+          summary: aiSummary1,
+        },
+        {
+          id: createResponse2.body.id,
+          summary: aiSummary2,
+        },
+      ])
+    )
+
+    // Should not contain text fields
+    getResponse.body.data.forEach((snippet: any) => {
+      expect(snippet).not.toHaveProperty('text')
+    })
+  })
+
+  it('should return full snippets when onlySummaries=false', async () => {
+    // Clear the mock repository before this test
+    mockRepository.snippets.clear()
+
+    const aiSummary1 = 'AI summary for snippet 1'
+    const aiSummary2 = 'AI summary for snippet 2'
+
+    mockSummarizeText
+      .mockResolvedValueOnce(aiSummary1)
+      .mockResolvedValueOnce(aiSummary2)
+
+    // Create first snippet
+    const createResponse1 = await request(app)
+      .post('/snippets')
+      .send({ text: 'First test snippet' })
+      .expect(200)
+
+    // Create second snippet
+    const createResponse2 = await request(app)
+      .post('/snippets')
+      .send({ text: 'Second test snippet' })
+      .expect(200)
+
+    // Get snippets with onlySummaries=false
+    const getResponse = await request(app)
+      .get('/snippets?onlySummaries=false')
+      .expect(200)
+
+    expect(getResponse.body.data).toHaveLength(2)
+    expect(getResponse.body.total).toBe(2)
+    expect(getResponse.body.page).toBe(1)
+    expect(getResponse.body.limit).toBe(2)
+
+    // Should contain all fields
+    expect(getResponse.body.data).toEqual(
+      expect.arrayContaining([
+        {
+          id: createResponse1.body.id,
+          text: 'First test snippet',
+          summary: aiSummary1,
+        },
+        {
+          id: createResponse2.body.id,
+          text: 'Second test snippet',
+          summary: aiSummary2,
+        },
+      ])
+    )
   })
 })
 
@@ -350,7 +465,7 @@ describe('GET /snippets/:id integration tests', () => {
       .expect(404)
 
     expect(response.body).toEqual({
-      error: 'Snippet not found'
+      error: 'Snippet not found',
     })
   })
 
@@ -362,20 +477,18 @@ describe('GET /snippets/:id integration tests', () => {
       .expect(404)
 
     expect(response.body).toEqual({
-      error: 'Snippet not found'
+      error: 'Snippet not found',
     })
   })
 
   it('should return all snippets when accessing /snippets/', async () => {
-    await request(app)
-      .get('/snippets/')
-      .expect(200) // This now routes to GET /snippets endpoint
+    await request(app).get('/snippets/').expect(200) // This now routes to GET /snippets endpoint
   })
 
   it('should return a snippet when valid ID exists', async () => {
     const aiSummary = 'AI summary for retrieval test'
     mockSummarizeText.mockResolvedValue(aiSummary)
-    
+
     // First create a snippet
     const createResponse = await request(app)
       .post('/snippets')
@@ -392,15 +505,16 @@ describe('GET /snippets/:id integration tests', () => {
     expect(getResponse.body).toEqual({
       id: snippetId,
       text: 'Test snippet for retrieval',
-      summary: aiSummary
+      summary: aiSummary,
     })
   })
 
   it('should return correct snippet with long text and summary', async () => {
-    const longText = 'This is a very long piece of text that contains more than ten words and should be properly summarized by AI'
+    const longText =
+      'This is a very long piece of text that contains more than ten words and should be properly summarized by AI'
     const aiSummary = 'AI summary for long text in GET test'
     mockSummarizeText.mockResolvedValue(aiSummary)
-    
+
     // First create a snippet
     const createResponse = await request(app)
       .post('/snippets')
@@ -417,14 +531,14 @@ describe('GET /snippets/:id integration tests', () => {
     expect(getResponse.body).toEqual({
       id: snippetId,
       text: longText,
-      summary: aiSummary
+      summary: aiSummary,
     })
   })
 
   it('should return correct content type for JSON response', async () => {
     const aiSummary = 'AI summary for content type in GET test'
     mockSummarizeText.mockResolvedValue(aiSummary)
-    
+
     // First create a snippet
     const createResponse = await request(app)
       .post('/snippets')
@@ -444,11 +558,13 @@ describe('GET /snippets/:id integration tests', () => {
   })
 
   it('should handle special characters in retrieved snippet', async () => {
-    const specialText = 'Special chars: !@#$%^&*()_+{}|:"<>?[]\\;\',./ àáâãäåæçèéêë'
-    const expectedSanitizedText = 'Special chars: !@#$%^&*()_+{}|:"?[]\\;\',./ àáâãäåæçèéêë' // < and > are removed
+    const specialText =
+      'Special chars: !@#$%^&*()_+{}|:"<>?[]\\;\',./ àáâãäåæçèéêë'
+    const expectedSanitizedText =
+      'Special chars: !@#$%^&*()_+{}|:"?[]\\;\',./ àáâãäåæçèéêë' // < and > are removed
     const aiSummary = 'AI summary for special chars in GET test'
     mockSummarizeText.mockResolvedValue(aiSummary)
-    
+
     // First create a snippet
     const createResponse = await request(app)
       .post('/snippets')
@@ -471,7 +587,7 @@ describe('GET /snippets/:id integration tests', () => {
     const expectedSanitizedText = 'Line 1\nLine 2 Tabbed content\n\nLine 4' // tabs are normalized to single spaces
     const aiSummary = 'AI summary for whitespace in GET test'
     mockSummarizeText.mockResolvedValue(aiSummary)
-    
+
     // First create a snippet
     const createResponse = await request(app)
       .post('/snippets')

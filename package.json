@@ -2,7 +2,7 @@
   "name": "hn-challenge-raphael-gomide",
   "private": true,
   "scripts": {
-    "dev": "pnpm run --parallel dev",
+    "dev": "cd docker && docker compose up --build -d mongodb && cd .. && pnpm run --parallel dev",
     "build": "pnpm --filter @hn-challenge/shared build && pnpm --filter @hn-challenge/backend build && pnpm --filter @hn-challenge/frontend build",
     "start": "pnpm run --recursive start",
     "lint": "pnpm run --recursive lint",

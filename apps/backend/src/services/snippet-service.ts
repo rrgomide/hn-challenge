@@ -1,4 +1,8 @@
-import { Snippet, CreateSnippetRequest } from '../models/snippet.js'
+import {
+  Snippet,
+  CreateSnippetRequest,
+  SnippetsResponse,
+} from '../models/snippet.js'
 import { randomUUID } from 'crypto'
 import { AIService, createAIService } from './ai-service.js'
 import { SnippetRepository } from '../repositories/snippet-repository.js'
@@ -34,8 +38,18 @@ export class SnippetService {
     return await this.repository.findById(id)
   }
 
-  async getAllSnippets(): Promise<Snippet[]> {
-    return await this.repository.findAll()
+  async getAllSnippets(
+    options: { summaryOnly: boolean } = { summaryOnly: false }
+  ): Promise<SnippetsResponse> {
+    const snippets = await this.repository.findAll(options)
+
+    // TODO: Implement pagination
+    return {
+      data: snippets,
+      total: snippets.length,
+      page: 1,
+      limit: snippets.length,
+    }
   }
 
   private async generateSummary(text: string): Promise<string> {

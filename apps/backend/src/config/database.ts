@@ -1,3 +1,6 @@
+// @dotenvx/dotenvx/config should be the first thing to be imported
+import '@dotenvx/dotenvx/config'
+
 import { MongoClient, Db } from 'mongodb'
 
 export class DatabaseConnection {
@@ -18,6 +21,8 @@ export class DatabaseConnection {
     if (this.db) {
       return this.db
     }
+
+    console.log(process.env.NODE_ENV, process.env.MONGODB_URI)
 
     const connectionString = process.env.MONGODB_URI
 

@@ -1,6 +1,6 @@
 import { MongoClient, Db, Collection } from 'mongodb'
 import { Snippet } from '../models/snippet.js'
-import { SnippetRepository } from './snippet-repository.js'
+import { SnippetRepository, SnippetRepositoryOptions } from './snippet-repository.js'
 
 export class MongoDbSnippetRepository implements SnippetRepository {
   private db: Db
@@ -24,9 +24,16 @@ export class MongoDbSnippetRepository implements SnippetRepository {
     return snippet || null
   }
 
-  async findAll(): Promise<Snippet[]> {
-    const snippets = await this.collection.find({}).toArray()
-    return snippets
+  async findAll(options: SnippetRepositoryOptions = { summaryOnly: false }): Promise<Partial<Snippet>[]> {
+    if (options.summaryOnly) {
+      // Return only id and summary fields when summaryOnly is true
+      const snippets = await this.collection.find({}, { projection: { id: 1, summary: 1, _id: 0 } }).toArray()
+      return snippets
+    } else {
+      // Return all fields when summaryOnly is false
+      const snippets = await this.collection.find({}).toArray()
+      return snippets
+    }
   }
 
   async update(id: string, updates: Partial<Snippet>): Promise<Snippet | null> {

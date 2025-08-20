@@ -11,15 +11,18 @@ export class SnippetController {
 
   private sanitizeText(text: string): string {
     // First, remove script tags and their content completely
-    let sanitized = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    
+    let sanitized = text.replace(
+      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+      ''
+    )
+
     // Remove other HTML tags but keep their content
     sanitized = sanitized.replace(/<[^>]*>/g, '')
-    
+
     // Only normalize whitespace that appears to be from HTML (multiple spaces/tabs)
     // but preserve intentional newlines and single spaces
     sanitized = sanitized.replace(/[ \t]+/g, ' ').trim()
-    
+
     return sanitized
   }
 
@@ -37,7 +40,9 @@ export class SnippetController {
       // Sanitize the text input to remove HTML tags and normalize whitespace
       const sanitizedText = this.sanitizeText(text)
 
-      const snippet = await this.snippetService.createSnippet({ text: sanitizedText })
+      const snippet = await this.snippetService.createSnippet({
+        text: sanitizedText,
+      })
       response.json(snippet)
     } catch (error) {
       console.error('Error creating snippet:', error)
@@ -68,13 +73,18 @@ export class SnippetController {
     }
   }
 
-  async getAllSnippets(req: Request, res: Response): Promise<void> {
+  async getAllSnippets(request: Request, response: Response): Promise<void> {
     try {
-      const snippets = await this.snippetService.getAllSnippets()
-      res.json(snippets)
+      // Parse the onlySummaries query parameter
+      const onlySummaries = request.query.onlySummaries === 'true'
+
+      const snippets = await this.snippetService.getAllSnippets({
+        summaryOnly: onlySummaries,
+      })
+      response.json(snippets)
     } catch (error) {
       console.error('Error retrieving all snippets:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      response.status(500).json({ error: 'Internal server error' })
     }
   }
 }
