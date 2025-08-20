@@ -1,6 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Sidebar } from '../components/sidebar.js'
 import { MainContent } from '../components/main-content.js'
+import { Header } from '../components/header.js'
+import { useTheme } from '../contexts/theme-context.js'
 
 interface Snippet {
   id: string
@@ -18,6 +20,12 @@ export function meta() {
 export default function Home() {
   const [selectedSnippet, setSelectedSnippet] = useState<Snippet | undefined>(undefined)
   const [refreshSidebar, setRefreshSidebar] = useState(0)
+  const [mounted, setMounted] = useState(false)
+  const { theme, toggleTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleNewChat = useCallback(() => {
     setSelectedSnippet(undefined)
@@ -32,17 +40,23 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar
-        key={refreshSidebar}
-        onNewChat={handleNewChat}
-        onSelectSnippet={handleSelectSnippet}
-        selectedSnippetId={selectedSnippet?.id}
+    <div className="flex flex-col h-screen bg-background">
+      <Header 
+        onToggleTheme={mounted ? toggleTheme : undefined} 
+        theme={mounted ? theme : 'light'} 
       />
-      <MainContent
-        selectedSnippet={selectedSnippet}
-        onSnippetCreated={handleSnippetCreated}
-      />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar
+          key={refreshSidebar}
+          onNewChat={handleNewChat}
+          onSelectSnippet={handleSelectSnippet}
+          selectedSnippetId={selectedSnippet?.id}
+        />
+        <MainContent
+          selectedSnippet={selectedSnippet}
+          onSnippetCreated={handleSnippetCreated}
+        />
+      </div>
     </div>
   )
 }

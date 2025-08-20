@@ -8,6 +8,8 @@ import {
 } from "react-router";
 
 import "./tailwind.css";
+import { ThemeProvider } from "./contexts/theme-context.js";
+import { ThemeScript } from "./components/theme-script.js";
 
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -30,9 +32,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <ThemeScript />
       </head>
       <body>
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
         <ScrollRestoration />
         <Scripts />
       </body>
