@@ -28,11 +28,6 @@ export class DatabaseConnection {
       ? process.env.MONGODB_URI_DEV
       : process.env.MONGODB_URI_PROD
 
-    console.log('🔥 ~ connectionString:', {
-      connectionString,
-      isDevelopment,
-    })
-
     try {
       if (!connectionString) {
         throw new Error('MONGODB_URI is not set')

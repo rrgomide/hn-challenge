@@ -1,16 +1,22 @@
-import { useState, useEffect } from "react"
-import { ScrollArea } from "./ui/scroll-area.js"
-import { Button } from "./ui/button.js"
-import { Plus, MessageSquare } from "lucide-react"
-import { Snippet } from "@hn-challenge/shared"
+import { useState, useEffect } from 'react'
+import { ScrollArea } from './ui/scroll-area.js'
+import { Button } from './ui/button.js'
+import { Plus, MessageSquare, X } from 'lucide-react'
+import { Snippet } from '@hn-challenge/shared'
 
 interface SidebarProps {
   onNewChat: () => void
   onSelectSnippet: (snippet: Snippet) => void
   selectedSnippetId?: string
+  onClose?: () => void
 }
 
-export function Sidebar({ onNewChat, onSelectSnippet, selectedSnippetId }: SidebarProps) {
+export function Sidebar({
+  onNewChat,
+  onSelectSnippet,
+  selectedSnippetId,
+  onClose,
+}: SidebarProps) {
   const [snippets, setSnippets] = useState<Snippet[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -33,32 +39,50 @@ export function Sidebar({ onNewChat, onSelectSnippet, selectedSnippetId }: Sideb
   }
 
   return (
-    <div className="flex flex-col h-full w-64 bg-card border-r border-border">
-      <div className="p-4 border-b border-border">
+    <div className="flex flex-col h-full w-80 lg:w-64 bg-card border-r border-border">
+      <div className="p-3 sm:p-4 border-b border-border flex items-center justify-between">
         <Button
           onClick={onNewChat}
-          className="w-full justify-start gap-2"
+          className="flex-1 justify-start gap-2 mr-2"
           variant="outline"
         >
           <Plus className="w-4 h-4" />
-          New Chat
+          <span className="hidden sm:inline">New Chat</span>
+          <span className="sm:hidden">New</span>
         </Button>
+
+        {/* Mobile close button */}
+        {onClose && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="h-9 w-9 lg:hidden"
+            aria-label="Close sidebar"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
-      
+
       <ScrollArea className="flex-1">
         <div className="p-2">
           {loading ? (
             <div className="text-sm text-muted-foreground p-2">Loading...</div>
           ) : snippets.length === 0 ? (
-            <div className="text-sm text-muted-foreground p-2">No snippets yet</div>
+            <div className="text-sm text-muted-foreground p-2">
+              No snippets yet
+            </div>
           ) : (
             <div className="space-y-1">
-              {snippets.map((snippet) => (
+              {snippets.map(snippet => (
                 <Button
                   key={snippet.id}
                   onClick={() => onSelectSnippet(snippet)}
-                  variant={selectedSnippetId === snippet.id ? "secondary" : "ghost"}
-                  className="w-full justify-start p-2 h-auto text-left"
+                  variant={
+                    selectedSnippetId === snippet.id ? 'secondary' : 'ghost'
+                  }
+                  className="w-full justify-start p-2 h-auto text-left touch-manipulation"
                 >
                   <div className="flex items-start gap-2 w-full">
                     <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -66,8 +90,10 @@ export function Sidebar({ onNewChat, onSelectSnippet, selectedSnippetId }: Sideb
                       <div className="text-sm font-medium truncate">
                         {snippet.summary || 'Untitled'}
                       </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {snippet.text.length > 50 ? snippet.text.substring(0, 50) + '...' : snippet.text}
+                      <div className="text-xs text-muted-foreground truncate hidden sm:block">
+                        {snippet.text.length > 50
+                          ? snippet.text.substring(0, 50) + '...'
+                          : snippet.text}
                       </div>
                       <div className="text-xs text-muted-foreground/70">
                         {new Date(snippet.updatedAt).toLocaleDateString()}
