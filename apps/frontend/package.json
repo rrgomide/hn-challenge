@@ -12,14 +12,18 @@
     "typegen": "react-router typegen"
   },
   "dependencies": {
+    "@hn-challenge/shared": "workspace:*",
     "@react-router/dev": "^7.0.0",
     "@react-router/node": "^7.0.0",
     "@react-router/serve": "^7.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "isbot": "^4.1.0",
+    "lucide-react": "^0.540.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-router": "^7.0.0",
-    "@hn-challenge/shared": "workspace:*"
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",

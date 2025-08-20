@@ -9,6 +9,18 @@ export async function defineControllers(): Promise<Express> {
 
   app.use(express.json())
 
+  // CORS middleware
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*')
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(200)
+    } else {
+      next()
+    }
+  })
+
   // Initialize database connection and repository
   const dbConnection = DatabaseConnection.getInstance()
   const db = await dbConnection.connect()
