@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router'
 import { ScrollArea } from './ui/scroll-area'
 import { Button } from './ui/button'
 import { Plus, MessageSquare, X } from 'lucide-react'
@@ -7,16 +8,16 @@ import { Snippet } from '@hn-challenge/shared'
 interface SidebarProps {
   onNewChat: () => void
   onSelectSnippet: (snippet: Snippet) => void
-  selectedSnippetId?: string
   onClose?: () => void
 }
 
 export function Sidebar({
   onNewChat,
   onSelectSnippet,
-  selectedSnippetId,
   onClose,
 }: SidebarProps) {
+  const navigate = useNavigate()
+  const { id: selectedSnippetId } = useParams()
   const [snippets, setSnippets] = useState<Snippet[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -29,7 +30,7 @@ export function Sidebar({
       const response = await fetch('http://localhost:3000/snippets')
       if (response.ok) {
         const result = await response.json()
-        setSnippets(result.data || [])
+        setSnippets(result.data || []) // GET /snippets returns {data: [...], total, page, limit}
       }
     } catch (error) {
       console.error('Failed to fetch snippets:', error)
@@ -42,7 +43,10 @@ export function Sidebar({
     <div className="flex flex-col h-full w-80 lg:w-64 bg-card border-r border-border">
       <div className="p-3 sm:p-4 border-b border-border flex items-center justify-between">
         <Button
-          onClick={onNewChat}
+          onClick={() => {
+            onNewChat()
+            navigate('/')
+          }}
           className="flex-1 justify-start gap-2 mr-2"
           variant="outline"
         >
@@ -78,7 +82,10 @@ export function Sidebar({
               {snippets.map(snippet => (
                 <Button
                   key={snippet.id}
-                  onClick={() => onSelectSnippet(snippet)}
+                  onClick={() => {
+                    onSelectSnippet(snippet)
+                    navigate(`/snippets/${snippet.id}`)
+                  }}
                   variant={
                     selectedSnippetId === snippet.id ? 'secondary' : 'ghost'
                   }

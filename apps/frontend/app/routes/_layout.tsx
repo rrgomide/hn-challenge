@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
+import { Outlet } from 'react-router'
 import { Sidebar } from '../components/sidebar'
-import { MainContent } from '../components/main-content'
 import { Header } from '../components/header'
 import { useTheme } from '../contexts/theme-context'
 import { Snippet } from '@hn-challenge/shared'
@@ -12,10 +12,7 @@ export function meta() {
   ]
 }
 
-export default function Home() {
-  const [selectedSnippet, setSelectedSnippet] = useState<Snippet | undefined>(
-    undefined
-  )
+export default function Layout() {
   const [refreshSidebar, setRefreshSidebar] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -26,12 +23,10 @@ export default function Home() {
   }, [])
 
   const handleNewChat = useCallback(() => {
-    setSelectedSnippet(undefined)
     setSidebarOpen(false) // Close sidebar on mobile when starting new chat
   }, [])
 
   const handleSelectSnippet = useCallback((snippet: Snippet) => {
-    setSelectedSnippet(snippet)
     setSidebarOpen(false) // Close sidebar on mobile when selecting snippet
   }, [])
 
@@ -73,17 +68,13 @@ export default function Home() {
             key={refreshSidebar}
             onNewChat={handleNewChat}
             onSelectSnippet={handleSelectSnippet}
-            selectedSnippetId={selectedSnippet?.id}
             onClose={() => setSidebarOpen(false)}
           />
         </div>
 
         {/* Main content */}
         <div className="flex-1 w-full lg:w-auto">
-          <MainContent
-            selectedSnippet={selectedSnippet}
-            onSnippetCreated={handleSnippetCreated}
-          />
+          <Outlet context={{ onSnippetCreated: handleSnippetCreated }} />
         </div>
       </div>
     </div>
