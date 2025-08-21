@@ -1,6 +1,6 @@
-import * as React from "react"
+import * as React from 'react'
 
-import { cn } from "../../lib/utils"
+import { cn } from '../../lib/utils'
 
 const ScrollArea = React.forwardRef<
   HTMLDivElement,
@@ -8,16 +8,16 @@ const ScrollArea = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("relative overflow-hidden", className)}
+    className={cn('relative overflow-hidden', className)}
     {...props}
   >
     <div className="h-full w-full rounded-[inherit]">
-      <div className="h-full w-full overflow-auto">
+      <div className="h-full w-full overflow-auto scrollbar-thin">
         {children}
       </div>
     </div>
   </div>
 ))
-ScrollArea.displayName = "ScrollArea"
+ScrollArea.displayName = 'ScrollArea'
 
 export { ScrollArea }
