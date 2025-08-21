@@ -9,10 +9,6 @@ import { Button } from '../components/ui/button'
 import { Send, Loader2 as Loader } from 'lucide-react'
 import { useNavigation } from 'react-router'
 
-interface OutletContext {
-  onSnippetCreated: () => void
-}
-
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData()
   const text = formData.get('text') as string
@@ -46,7 +42,6 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function Index() {
-  const { onSnippetCreated } = useOutletContext<OutletContext>()
   const navigation = useNavigation()
   const isSubmitting = navigation.state === 'submitting'
 

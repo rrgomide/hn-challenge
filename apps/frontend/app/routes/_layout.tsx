@@ -35,7 +35,6 @@ export function meta() {
 }
 
 export default function Layout({ loaderData }: ComponentProps) {
-  const [refreshSidebar, setRefreshSidebar] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { theme, toggleTheme } = useTheme()
@@ -50,10 +49,6 @@ export default function Layout({ loaderData }: ComponentProps) {
 
   const handleSelectSnippet = useCallback((snippet: Snippet) => {
     setSidebarOpen(false) // Close sidebar on mobile when selecting snippet
-  }, [])
-
-  const handleSnippetCreated = useCallback(() => {
-    setRefreshSidebar(prev => prev + 1)
   }, [])
 
   const toggleSidebar = useCallback(() => {
@@ -87,7 +82,6 @@ export default function Layout({ loaderData }: ComponentProps) {
         `}
         >
           <Sidebar
-            key={refreshSidebar}
             snippets={loaderData.snippets}
             onNewChat={handleNewChat}
             onSelectSnippet={handleSelectSnippet}
@@ -97,7 +91,7 @@ export default function Layout({ loaderData }: ComponentProps) {
 
         {/* Main content */}
         <div className="flex-1 w-full lg:w-auto">
-          <Outlet context={{ onSnippetCreated: handleSnippetCreated }} />
+          <Outlet />
         </div>
       </div>
     </div>
