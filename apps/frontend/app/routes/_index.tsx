@@ -1,48 +1,26 @@
-import {
-  useOutletContext,
-  redirect,
-  type ActionFunctionArgs,
-} from 'react-router'
+import { redirect, useActionData, type ActionFunctionArgs } from 'react-router'
 import { Form } from 'react-router'
 import { Textarea } from '../components/ui/textarea'
 import { Button } from '../components/ui/button'
 import { Send, Loader2 as Loader } from 'lucide-react'
 import { useNavigation } from 'react-router'
+import { postSnippet } from '../server/snippets.server'
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData()
-  const text = formData.get('text') as string
+  const text = formData.get('text')?.toString() ?? ''
+  const { newSnippet, error } = await postSnippet(text)
 
-  // Validate input
-  if (!text || !text.trim()) {
-    throw new Error('Text content is required')
+  if (error) {
+    return { error }
   }
 
-  try {
-    const response = await fetch('http://localhost:3000/snippets', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text: text.trim() }),
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to create snippet')
-    }
-
-    const snippet = await response.json()
-
-    // Redirect to the created snippet
-    return redirect(`/snippets/${snippet.id}`)
-  } catch (error) {
-    console.error('Error creating snippet:', error)
-    throw new Error('Failed to create snippet')
-  }
+  return redirect(`/snippets/${newSnippet.id}`)
 }
 
 export default function Index() {
   const navigation = useNavigation()
+  const actionData = useActionData<typeof action>()
   const isSubmitting = navigation.state === 'submitting'
 
   return (
@@ -65,6 +43,10 @@ export default function Index() {
               className="min-h-[150px] sm:min-h-[200px] resize-none touch-manipulation"
               required
             />
+
+            {actionData?.error && (
+              <p className="text-red-500">{actionData.error}</p>
+            )}
 
             <div className="flex justify-end">
               <Button
