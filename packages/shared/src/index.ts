@@ -11,14 +11,10 @@ export interface CreateSnippetRequest {
 }
 
 export interface SnippetsResponse {
-  data: Partial<Snippet>[]
+  data: Partial<Snippet[]>
   total: number
   page: number
   limit: number
-}
-
-export function greet(name: string): string {
-  return `Hello, ${name}!`
 }
 
 export function sanitizeJsonString(text: string) {
