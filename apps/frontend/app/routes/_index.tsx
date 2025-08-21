@@ -1,48 +1,54 @@
-import { useState } from 'react'
-import { useNavigate, useOutletContext } from 'react-router'
+import {
+  useOutletContext,
+  redirect,
+  type ActionFunctionArgs,
+} from 'react-router'
+import { Form } from 'react-router'
 import { Textarea } from '../components/ui/textarea'
 import { Button } from '../components/ui/button'
 import { Send, Loader2 as Loader } from 'lucide-react'
+import { useNavigation } from 'react-router'
 
 interface OutletContext {
   onSnippetCreated: () => void
 }
 
-export default function Index() {
-  const [content, setContent] = useState('')
-  const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
-  const { onSnippetCreated } = useOutletContext<OutletContext>()
+export async function action({ request }: ActionFunctionArgs) {
+  const formData = await request.formData()
+  const text = formData.get('text') as string
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!content.trim() || loading) return
-
-    setLoading(true)
-    try {
-      const response = await fetch('http://localhost:3000/snippets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: content.trim() }),
-      })
-
-      if (response.ok) {
-        const snippet = await response.json()
-        setContent('')
-        onSnippetCreated()
-        // Navigate to the created snippet
-        navigate(`/snippets/${snippet.id}`) // POST /snippets returns snippet directly
-      } else {
-        console.error('Failed to create snippet')
-      }
-    } catch (error) {
-      console.error('Error creating snippet:', error)
-    } finally {
-      setLoading(false)
-    }
+  // Validate input
+  if (!text || !text.trim()) {
+    throw new Error('Text content is required')
   }
+
+  try {
+    const response = await fetch('http://localhost:3000/snippets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: text.trim() }),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to create snippet')
+    }
+
+    const snippet = await response.json()
+
+    // Redirect to the created snippet
+    return redirect(`/snippets/${snippet.id}`)
+  } catch (error) {
+    console.error('Error creating snippet:', error)
+    throw new Error('Failed to create snippet')
+  }
+}
+
+export default function Index() {
+  const { onSnippetCreated } = useOutletContext<OutletContext>()
+  const navigation = useNavigation()
+  const isSubmitting = navigation.state === 'submitting'
 
   return (
     <div className="flex flex-col h-full">
@@ -57,29 +63,29 @@ export default function Index() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <Form method="post" className="space-y-4">
             <Textarea
-              value={content}
-              onChange={e => setContent(e.target.value)}
+              name="text"
               placeholder="Paste your text here to get a summary..."
               className="min-h-[150px] sm:min-h-[200px] resize-none touch-manipulation"
+              required
             />
 
             <div className="flex justify-end">
               <Button
                 type="submit"
-                disabled={!content.trim() || loading}
+                disabled={isSubmitting}
                 className="gap-2 w-full sm:w-48 touch-manipulation"
               >
-                {loading ? (
+                {isSubmitting ? (
                   <Loader className="w-4 h-4 animate-spin" />
                 ) : (
                   <Send className="w-4 h-4" />
                 )}
-                {loading ? 'Summarizing...' : 'Summarize'}
+                {isSubmitting ? 'Summarizing...' : 'Summarize'}
               </Button>
             </div>
-          </form>
+          </Form>
         </div>
       </div>
     </div>

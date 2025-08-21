@@ -8,7 +8,6 @@ export function ThemeScript({ storageKey = 'theme' }: { storageKey?: string }) {
         document.documentElement.classList.remove('light', 'dark');
         document.documentElement.classList.add(theme);
       } catch (e) {
-        // If localStorage is not available, fall back to system preference
         if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
           document.documentElement.classList.add('dark');
         } else {
