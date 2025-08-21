@@ -5,6 +5,28 @@ import { Header } from '../components/header'
 import { useTheme } from '../contexts/theme-context'
 import { Snippet } from '@hn-challenge/shared'
 
+interface LoaderData {
+  snippets: Snippet[]
+}
+
+interface ComponentProps {
+  loaderData: LoaderData
+}
+
+export async function loader(): Promise<{ snippets: Snippet[] }> {
+  try {
+    const response = await fetch('http://localhost:3000/snippets')
+    if (response.ok) {
+      const result = await response.json()
+      return { snippets: result.data || [] }
+    }
+    return { snippets: [] }
+  } catch (error) {
+    console.error('Failed to fetch snippets in loader:', error)
+    return { snippets: [] }
+  }
+}
+
 export function meta() {
   return [
     { title: 'Snippet Summarizer - HN Challenge' },
@@ -12,7 +34,7 @@ export function meta() {
   ]
 }
 
-export default function Layout() {
+export default function Layout({ loaderData }: ComponentProps) {
   const [refreshSidebar, setRefreshSidebar] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -66,6 +88,7 @@ export default function Layout() {
         >
           <Sidebar
             key={refreshSidebar}
+            snippets={loaderData.snippets}
             onNewChat={handleNewChat}
             onSelectSnippet={handleSelectSnippet}
             onClose={() => setSidebarOpen(false)}

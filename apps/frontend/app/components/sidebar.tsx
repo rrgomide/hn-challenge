@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { ScrollArea } from './ui/scroll-area'
 import { Button } from './ui/button'
@@ -6,38 +5,20 @@ import { Plus, MessageSquare, X } from 'lucide-react'
 import { Snippet } from '@hn-challenge/shared'
 
 interface SidebarProps {
+  snippets: Snippet[]
   onNewChat: () => void
   onSelectSnippet: (snippet: Snippet) => void
   onClose?: () => void
 }
 
 export function Sidebar({
+  snippets,
   onNewChat,
   onSelectSnippet,
   onClose,
 }: SidebarProps) {
   const navigate = useNavigate()
   const { id: selectedSnippetId } = useParams()
-  const [snippets, setSnippets] = useState<Snippet[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchSnippets()
-  }, [])
-
-  const fetchSnippets = async () => {
-    try {
-      const response = await fetch('http://localhost:3000/snippets')
-      if (response.ok) {
-        const result = await response.json()
-        setSnippets(result.data || []) // GET /snippets returns {data: [...], total, page, limit}
-      }
-    } catch (error) {
-      console.error('Failed to fetch snippets:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
     <div className="flex flex-col h-full w-80 lg:w-64 bg-card border-r border-border">
@@ -71,9 +52,7 @@ export function Sidebar({
 
       <ScrollArea className="flex-1">
         <div className="p-2">
-          {loading ? (
-            <div className="text-sm text-muted-foreground p-2">Loading...</div>
-          ) : snippets.length === 0 ? (
+          {snippets.length === 0 ? (
             <div className="text-sm text-muted-foreground p-2">
               No snippets yet
             </div>
