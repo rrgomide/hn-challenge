@@ -18,53 +18,68 @@ export async function action({ request }: ActionFunctionArgs) {
   return redirect(`/snippets/${newSnippet.id}`)
 }
 
-export default function Index() {
+function Wrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+        <div className="max-w-2xl w-full space-y-4 sm:space-y-6">
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Title() {
+  return (
+    <div className="text-center space-y-2 sm:space-y-3">
+      <h1 className="text-2xl sm:text-4xl font-bold">Snippet Summarizer</h1>
+      <p className="text-base sm:text-lg text-muted-foreground">
+        Paste or type your content below to get a summary
+      </p>
+    </div>
+  )
+}
+
+function SummarizeForm() {
   const navigation = useNavigation()
   const actionData = useActionData<typeof action>()
   const isSubmitting = navigation.state === 'submitting'
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="max-w-2xl w-full space-y-4 sm:space-y-6">
-          <div className="text-center space-y-2 sm:space-y-3">
-            <h1 className="text-2xl sm:text-4xl font-bold">
-              Snippet Summarizer
-            </h1>
-            <p className="text-base sm:text-lg text-muted-foreground">
-              Paste or type your content below to get a summary
-            </p>
-          </div>
+    <Form method="post" className="space-y-4">
+      <Textarea
+        name="text"
+        placeholder="Paste your text here to get a summary..."
+        className="min-h-[150px] sm:min-h-[200px] resize-none touch-manipulation"
+        required
+      />
 
-          <Form method="post" className="space-y-4">
-            <Textarea
-              name="text"
-              placeholder="Paste your text here to get a summary..."
-              className="min-h-[150px] sm:min-h-[200px] resize-none touch-manipulation"
-              required
-            />
+      {actionData?.error && <p className="text-red-500">{actionData.error}</p>}
 
-            {actionData?.error && (
-              <p className="text-red-500">{actionData.error}</p>
-            )}
-
-            <div className="flex justify-end">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="gap-2 w-full sm:w-48 touch-manipulation"
-              >
-                {isSubmitting ? (
-                  <Loader className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-                {isSubmitting ? 'Summarizing...' : 'Summarize'}
-              </Button>
-            </div>
-          </Form>
-        </div>
+      <div className="flex justify-end">
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="gap-2 w-full sm:w-48"
+        >
+          {isSubmitting ? (
+            <Loader className="w-4 h-4 animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
+          {isSubmitting ? 'Summarizing...' : 'Summarize'}
+        </Button>
       </div>
-    </div>
+    </Form>
+  )
+}
+
+export default function Index() {
+  return (
+    <Wrapper>
+      <Title />
+      <SummarizeForm />
+    </Wrapper>
   )
 }

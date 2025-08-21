@@ -75,7 +75,6 @@ export class SnippetController {
 
   async getAllSnippets(request: Request, response: Response): Promise<void> {
     try {
-      // Parse the onlySummaries query parameter
       const onlySummaries = request.query.onlySummaries === 'true'
 
       const snippets = await this.snippetService.getAllSnippets({

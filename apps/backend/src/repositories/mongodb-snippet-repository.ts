@@ -32,7 +32,7 @@ export class MongoDbSnippetRepository implements SnippetRepository {
   ): Promise<Partial<Snippet>[]> {
     if (options.summaryOnly) {
       const snippets = await this.collection
-        .find({}, { projection: { id: 1, summary: 1, _id: 0 } })
+        .find({}, { projection: { id: 1, summary: 1, createdAt: 1, _id: 0 } })
         .sort({ updatedAt: -1 })
         .toArray()
       return snippets

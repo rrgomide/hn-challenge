@@ -4,19 +4,16 @@ import { Button } from './ui/button'
 import { Plus, MessageSquare, X } from 'lucide-react'
 import { Snippet } from '@hn-challenge/shared'
 
+type PartialSnippet = Pick<Snippet, 'id' | 'summary' | 'createdAt'>
+
 interface SidebarProps {
-  snippets: Snippet[]
+  snippets: PartialSnippet[]
   onNewChat: () => void
-  onSelectSnippet: (snippet: Snippet) => void
+  onSelectSnippet: (snippet: PartialSnippet) => void
   onClose?: () => void
 }
 
-export function Sidebar({
-  snippets,
-  onNewChat,
-  onSelectSnippet,
-  onClose,
-}: SidebarProps) {
+export function Sidebar({ snippets, onNewChat, onClose }: SidebarProps) {
   const navigate = useNavigate()
   const { id: selectedSnippetId } = useParams()
 
@@ -58,31 +55,23 @@ export function Sidebar({
             </div>
           ) : (
             <div className="space-y-1">
-              {snippets.map(snippet => (
+              {snippets.map(({ id, summary, createdAt }) => (
                 <Button
-                  key={snippet.id}
-                  onClick={() => {
-                    onSelectSnippet(snippet)
-                    navigate(`/snippets/${snippet.id}`)
-                  }}
-                  variant={
-                    selectedSnippetId === snippet.id ? 'secondary' : 'ghost'
-                  }
+                  key={id}
+                  onClick={() => navigate(`/snippets/${id}`)}
+                  variant={selectedSnippetId === id ? 'secondary' : 'ghost'}
                   className="w-full justify-start p-2 h-auto text-left touch-manipulation"
                 >
                   <div className="flex items-start gap-2 w-full">
                     <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">
-                        {snippet.summary || 'Untitled'}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate hidden sm:block">
-                        {snippet.text.length > 50
-                          ? snippet.text.substring(0, 50) + '...'
-                          : snippet.text}
+                        {summary || 'Untitled'}
                       </div>
                       <div className="text-xs text-muted-foreground/70">
-                        {new Date(snippet.updatedAt).toLocaleDateString()}
+                        {createdAt
+                          ? new Date(createdAt).toLocaleDateString()
+                          : 'Unknown date'}
                       </div>
                     </div>
                   </div>

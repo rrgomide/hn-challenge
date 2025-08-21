@@ -15,7 +15,9 @@ interface ComponentProps {
 
 export async function loader(): Promise<{ snippets: Snippet[] }> {
   try {
-    const response = await fetch('http://localhost:3000/snippets')
+    const response = await fetch(
+      'http://localhost:3000/snippets?onlySummaries=true'
+    )
     if (response.ok) {
       const result = await response.json()
       return { snippets: result.data || [] }
@@ -45,10 +47,6 @@ export default function Layout({ loaderData }: ComponentProps) {
 
   const handleNewChat = useCallback(() => {
     setSidebarOpen(false) // Close sidebar on mobile when starting new chat
-  }, [])
-
-  const handleSelectSnippet = useCallback((snippet: Snippet) => {
-    setSidebarOpen(false) // Close sidebar on mobile when selecting snippet
   }, [])
 
   const toggleSidebar = useCallback(() => {
@@ -84,7 +82,6 @@ export default function Layout({ loaderData }: ComponentProps) {
           <Sidebar
             snippets={loaderData.snippets}
             onNewChat={handleNewChat}
-            onSelectSnippet={handleSelectSnippet}
             onClose={() => setSidebarOpen(false)}
           />
         </div>
