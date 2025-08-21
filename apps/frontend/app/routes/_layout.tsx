@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Outlet, useLoaderData } from 'react-router'
 import { AppSidebar } from '../components/app-sidebar'
 import { AppHeader } from '../components/app-header'
@@ -31,6 +31,15 @@ function MobileMenuOverlay({ onClick }: { onClick: () => void }) {
     <div
       className="fixed inset-0 bg-black/50 z-40 lg:hidden"
       onClick={onClick}
+      aria-label="Close sidebar overlay"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick()
+        }
+      }}
     />
   )
 }
@@ -55,7 +64,7 @@ function SidebarWrapper({
 }
 
 function MainContentWrapper({ children }: { children: React.ReactNode }) {
-  return <div className="flex-1 w-full lg:w-auto">{children}</div>
+  return <main id="main-content" className="flex-1 w-full lg:w-auto" role="main">{children}</main>
 }
 
 function AppBodyWrapper({ children }: { children: React.ReactNode }) {
@@ -67,10 +76,24 @@ export default function Layout() {
   const [mounted, setMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { toggleTheme } = useTheme()
+  const sidebarRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sidebarOpen) {
+        setSidebarOpen(false)
+      }
+    }
+
+    if (sidebarOpen) {
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [sidebarOpen])
 
   const handleNewChat = useCallback(() => {
     setSidebarOpen(false) // Close sidebar on mobile when starting new chat
@@ -93,11 +116,13 @@ export default function Layout() {
         )}
 
         <SidebarWrapper sidebarOpen={sidebarOpen}>
-          <AppSidebar
-            snippets={snippets}
-            onNewChat={handleNewChat}
-            onClose={() => setSidebarOpen(false)}
-          />
+          <div ref={sidebarRef}>
+            <AppSidebar
+              snippets={snippets}
+              onNewChat={handleNewChat}
+              onClose={() => setSidebarOpen(false)}
+            />
+          </div>
         </SidebarWrapper>
 
         <MainContentWrapper>

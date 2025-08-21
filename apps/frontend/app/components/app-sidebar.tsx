@@ -5,16 +5,20 @@ import { Plus, MessageSquare, X } from 'lucide-react'
 import { Snippet } from '@hn-challenge/shared'
 
 interface AppSidebarProps {
-  snippets: Snippet[]
+  snippets: (Snippet | undefined)[]
   onNewChat: () => void
   onClose?: () => void
 }
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col h-full w-80 lg:w-64 bg-card border-r border-border">
+    <nav 
+      className="flex flex-col h-full w-80 lg:w-64 bg-card border-r border-border"
+      role="navigation"
+      aria-label="Snippet navigation"
+    >
       {children}
-    </div>
+    </nav>
   )
 }
 
@@ -37,6 +41,7 @@ function NewChatButton({ onNewChat }: { onNewChat: () => void }) {
       }}
       className="flex-1 justify-start gap-2 mr-2"
       variant="outline"
+      aria-label="Create new snippet"
     >
       <Plus className="w-4 h-4" />
       <span className="hidden sm:inline">New Chat</span>
@@ -67,17 +72,22 @@ function NoSnippets() {
   )
 }
 
-function SnippetList({ snippets }: { snippets: Snippet[] }) {
+function SnippetList({ snippets }: { snippets: (Snippet | undefined)[] }) {
   const navigate = useNavigate()
   const { id: selectedSnippetId } = useParams()
 
   return (
     <div className="p-2">
-      <div className="space-y-1">
+      <div className="space-y-1" role="list" aria-label="Snippets">
         {snippets.map(snippet => {
           if (!snippet) {
             return null
           }
+
+          const snippetTitle = snippet.summary || 'Untitled'
+          const snippetDate = snippet.createdAt
+            ? new Date(snippet.createdAt).toLocaleDateString()
+            : 'Unknown date'
 
           return (
             <Button
@@ -85,17 +95,18 @@ function SnippetList({ snippets }: { snippets: Snippet[] }) {
               onClick={() => navigate(`/snippets/${snippet.id}`)}
               variant={selectedSnippetId === snippet.id ? 'secondary' : 'ghost'}
               className="w-full justify-start p-2 h-auto text-left touch-manipulation"
+              aria-label={`View snippet: ${snippetTitle}, created on ${snippetDate}`}
+              aria-current={selectedSnippetId === snippet.id ? 'page' : undefined}
+              role="listitem"
             >
               <div className="flex items-start gap-2 w-full">
-                <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">
-                    {snippet.summary || 'Untitled'}
+                    {snippetTitle}
                   </div>
                   <div className="text-xs text-muted-foreground/70">
-                    {snippet.createdAt
-                      ? new Date(snippet.createdAt).toLocaleDateString()
-                      : 'Unknown date'}
+                    {snippetDate}
                   </div>
                 </div>
               </div>

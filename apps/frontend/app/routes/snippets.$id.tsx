@@ -38,7 +38,9 @@ export default function SnippetView() {
   if (loading) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
-        <div className="text-muted-foreground">Loading snippet...</div>
+        <div className="text-muted-foreground" role="status" aria-live="polite">
+          Loading snippet...
+        </div>
       </div>
     )
   }
@@ -46,7 +48,9 @@ export default function SnippetView() {
   if (error || !snippet) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
-        <div className="text-destructive">{error || 'Snippet not found'}</div>
+        <div className="text-destructive" role="alert" aria-live="assertive">
+          {error || 'Snippet not found'}
+        </div>
       </div>
     )
   }

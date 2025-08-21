@@ -57,9 +57,18 @@ function SummarizeForm() {
         placeholder="Paste your text here to get a summary..."
         className="min-h-[150px] sm:min-h-[200px] resize-none touch-manipulation"
         required
+        aria-label="Text content for summarization"
+        aria-describedby="textarea-help"
       />
+      <div id="textarea-help" className="sr-only">
+        Enter or paste the text content you want to summarize. This field is required.
+      </div>
 
-      {actionData?.error && <p className="text-red-500">{actionData.error}</p>}
+      {actionData?.error && (
+        <div role="alert" className="text-red-500" aria-live="polite">
+          {actionData.error}
+        </div>
+      )}
 
       <div className="flex justify-end">
         <Button

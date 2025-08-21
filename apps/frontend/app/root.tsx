@@ -29,6 +29,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <ThemeScript />
       </head>
       <body>
+        <a 
+          href="#main-content" 
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-[100] bg-background border border-border rounded px-3 py-2 text-sm font-medium"
+        >
+          Skip to main content
+        </a>
         <ThemeProvider>{children}</ThemeProvider>
         <ScrollRestoration />
         <Scripts />
