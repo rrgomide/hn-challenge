@@ -1,4 +1,5 @@
 import { Snippet, SnippetsResponse } from '@hn-challenge/shared'
+import { API_BASE_URL } from '../lib/api'
 
 export async function postSnippet(text: string) {
   try {
@@ -6,7 +7,7 @@ export async function postSnippet(text: string) {
       throw new Error('Text content is required')
     }
 
-    const response = await fetch('http://localhost:3000/snippets', {
+    const response = await fetch(`${API_BASE_URL}/snippets`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -15,6 +16,7 @@ export async function postSnippet(text: string) {
     })
 
     if (!response.ok) {
+      console.error('📛 Failed to create snippet:', { response })
       throw new Error('Failed to create snippet')
     }
 
@@ -31,16 +33,14 @@ export async function postSnippet(text: string) {
   }
 }
 
-export async function getSnippetsWithSummaries(): Promise<{
-  snippets: Partial<Snippet[]>
+export async function getSnippets(): Promise<{
+  snippets: Snippet[]
 }> {
   try {
-    const response = await fetch(
-      'http://localhost:3000/snippets?onlySummaries=true'
-    )
+    const response = await fetch(`${API_BASE_URL}/snippets`)
     if (response.ok) {
       const result: SnippetsResponse = await response.json()
-      const snippets: Partial<Snippet[]> = result.data
+      const snippets: Snippet[] = result.data
       return { snippets }
     }
     return { snippets: [] }

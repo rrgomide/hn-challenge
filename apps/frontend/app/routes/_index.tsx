@@ -15,6 +15,10 @@ export async function action({ request }: ActionFunctionArgs) {
     return { error }
   }
 
+  if (!newSnippet) {
+    return { error: 'Failed to create snippet' }
+  }
+
   return redirect(`/snippets/${newSnippet.id}`)
 }
 

@@ -22,15 +22,17 @@ const MockRouter = ({ children }: { children: React.ReactNode }) => (
 const mockSnippets: Snippet[] = [
   {
     id: '1',
-    content: 'Test snippet 1',
+    text: 'Test snippet 1',
     summary: 'First snippet',
-    createdAt: '2023-01-01T00:00:00.000Z'
+    createdAt: new Date('2023-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2023-01-01T00:00:00.000Z')
   },
   {
     id: '2',
-    content: 'Test snippet 2',
+    text: 'Test snippet 2',
     summary: 'Second snippet',
-    createdAt: '2023-01-02T00:00:00.000Z'
+    createdAt: new Date('2023-01-02T00:00:00.000Z'),
+    updatedAt: new Date('2023-01-02T00:00:00.000Z')
   }
 ]
 
@@ -116,11 +118,11 @@ describe('AppSidebar', () => {
     expect(screen.getByText('No snippets yet')).toBeInTheDocument()
   })
 
-  it('shows "No snippets yet" when snippets is undefined', () => {
+  it('shows "No snippets yet" when snippets is empty array', () => {
     const mockOnNewChat = vi.fn()
     render(
       <MockRouter>
-        <AppSidebar snippets={undefined} onNewChat={mockOnNewChat} />
+        <AppSidebar snippets={[]} onNewChat={mockOnNewChat} />
       </MockRouter>
     )
     
@@ -180,7 +182,7 @@ describe('AppSidebar', () => {
   })
 
   it('shows "Unknown date" for snippets without createdAt', () => {
-    const snippetWithoutDate = [{ ...mockSnippets[0], createdAt: undefined }]
+    const snippetWithoutDate = [{ ...mockSnippets[0], createdAt: undefined as any }]
     const mockOnNewChat = vi.fn()
     render(
       <MockRouter>
@@ -192,7 +194,7 @@ describe('AppSidebar', () => {
   })
 
   it('filters out falsy snippets', () => {
-    const snippetsWithNulls = [mockSnippets[0], null, mockSnippets[1], undefined]
+    const snippetsWithNulls = [mockSnippets[0], undefined, mockSnippets[1], undefined]
     const mockOnNewChat = vi.fn()
     render(
       <MockRouter>

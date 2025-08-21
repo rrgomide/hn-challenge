@@ -9,6 +9,7 @@
   ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES6"],
+    "types": ["vitest/globals"],
     "isolatedModules": true,
     "esModuleInterop": true,
     "jsx": "react-jsx",

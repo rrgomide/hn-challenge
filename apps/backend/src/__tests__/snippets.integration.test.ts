@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 import request from 'supertest'
 import { Express } from 'express'
+import { randomUUID } from 'crypto'
 
 // Mock the AI service module before any imports
 const mockSummarizeText = vi.fn()
@@ -15,18 +16,23 @@ vi.mock('../services/ai-service.js', () => ({
 const mockRepository = {
   snippets: new Map(),
   async create(snippet: any) {
-    this.snippets.set(snippet.id, snippet)
-    return snippet
+    const id = randomUUID()
+    const now = new Date()
+    const fullSnippet = {
+      id,
+      text: snippet.text,
+      summary: snippet.summary,
+      createdAt: now,
+      updatedAt: now,
+    }
+    this.snippets.set(id, fullSnippet)
+    return fullSnippet
   },
   async findById(id: string) {
     return this.snippets.get(id) || null
   },
-  async findAll(options: { summaryOnly: boolean } = { summaryOnly: false }) {
-    const snippets = Array.from(this.snippets.values())
-    if (options.summaryOnly) {
-      return snippets.map(({ id, summary }) => ({ id, summary }))
-    }
-    return snippets
+  async findAll() {
+    return Array.from(this.snippets.values())
   },
   async update(id: string, updates: any) {
     const existing = this.snippets.get(id)
@@ -352,112 +358,6 @@ describe('GET /snippets integration tests', () => {
     expect(response.body).toHaveProperty('limit')
   })
 
-  it('should return only summaries when onlySummaries=true', async () => {
-    // Clear the mock repository before this test
-    mockRepository.snippets.clear()
-
-    const aiSummary1 = 'AI summary for snippet 1'
-    const aiSummary2 = 'AI summary for snippet 2'
-
-    mockSummarizeText
-      .mockResolvedValueOnce(aiSummary1)
-      .mockResolvedValueOnce(aiSummary2)
-
-    // Create first snippet
-    const createResponse1 = await request(app)
-      .post('/snippets')
-      .send({ text: 'First test snippet' })
-      .expect(200)
-
-    // Create second snippet
-    const createResponse2 = await request(app)
-      .post('/snippets')
-      .send({ text: 'Second test snippet' })
-      .expect(200)
-
-    // Get snippets with onlySummaries=true
-    const getResponse = await request(app)
-      .get('/snippets?onlySummaries=true')
-      .expect(200)
-
-    expect(getResponse.body.data).toHaveLength(2)
-    expect(getResponse.body.total).toBe(2)
-    expect(getResponse.body.page).toBe(1)
-    expect(getResponse.body.limit).toBe(2)
-
-    // Should only contain id and summary fields
-    expect(getResponse.body.data).toEqual(
-      expect.arrayContaining([
-        {
-          id: createResponse1.body.id,
-          summary: aiSummary1,
-        },
-        {
-          id: createResponse2.body.id,
-          summary: aiSummary2,
-        },
-      ])
-    )
-
-    // Should not contain text fields
-    getResponse.body.data.forEach((snippet: any) => {
-      expect(snippet).not.toHaveProperty('text')
-    })
-  })
-
-  it('should return full snippets when onlySummaries=false', async () => {
-    // Clear the mock repository before this test
-    mockRepository.snippets.clear()
-
-    const aiSummary1 = 'AI summary for snippet 1'
-    const aiSummary2 = 'AI summary for snippet 2'
-
-    mockSummarizeText
-      .mockResolvedValueOnce(aiSummary1)
-      .mockResolvedValueOnce(aiSummary2)
-
-    // Create first snippet
-    const createResponse1 = await request(app)
-      .post('/snippets')
-      .send({ text: 'First test snippet' })
-      .expect(200)
-
-    // Create second snippet
-    const createResponse2 = await request(app)
-      .post('/snippets')
-      .send({ text: 'Second test snippet' })
-      .expect(200)
-
-    // Get snippets with onlySummaries=false
-    const getResponse = await request(app)
-      .get('/snippets?onlySummaries=false')
-      .expect(200)
-
-    expect(getResponse.body.data).toHaveLength(2)
-    expect(getResponse.body.total).toBe(2)
-    expect(getResponse.body.page).toBe(1)
-    expect(getResponse.body.limit).toBe(2)
-
-    // Should contain all fields
-    expect(getResponse.body.data).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: createResponse1.body.id,
-          text: 'First test snippet',
-          summary: aiSummary1,
-          createdAt: expect.any(String),
-          updatedAt: expect.any(String),
-        }),
-        expect.objectContaining({
-          id: createResponse2.body.id,
-          text: 'Second test snippet',
-          summary: aiSummary2,
-          createdAt: expect.any(String),
-          updatedAt: expect.any(String),
-        }),
-      ])
-    )
-  })
 })
 
 describe('GET /snippets/:id integration tests', () => {

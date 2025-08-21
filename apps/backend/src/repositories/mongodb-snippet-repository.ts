@@ -1,62 +1,105 @@
-import { MongoClient, Db, Collection } from 'mongodb'
+import { Db, Collection, ObjectId } from 'mongodb'
 import { Snippet } from '../models/snippet.js'
-import {
-  SnippetRepository,
-  SnippetRepositoryOptions,
-} from './snippet-repository.js'
+import { SnippetRepository } from './snippet-repository.js'
+
+// MongoDB document type without id (MongoDB generates _id)
+type SnippetDocument = Omit<Snippet, 'id'>
 
 export class MongoDbSnippetRepository implements SnippetRepository {
-  private db: Db
-  private collection: Collection<Snippet>
+  private collection: Collection<SnippetDocument>
 
   constructor(db: Db) {
-    this.db = db
-    this.collection = db.collection<Snippet>('snippets')
+    this.collection = db.collection<SnippetDocument>('snippets')
   }
 
-  async create(snippet: Snippet): Promise<Snippet> {
-    const result = await this.collection.insertOne(snippet)
+  async create(snippet: Partial<Snippet>): Promise<Snippet> {
+    const now = new Date()
+    const snippetToInsert: SnippetDocument = {
+      text: snippet.text!,
+      summary: snippet.summary!,
+      createdAt: now,
+      updatedAt: now,
+    }
+
+    const result = await this.collection.insertOne(snippetToInsert)
     if (!result.acknowledged) {
       throw new Error('Failed to create snippet')
     }
-    return snippet
-  }
 
-  async findById(id: string): Promise<Snippet | null> {
-    const snippet = await this.collection.findOne({ id })
-    return snippet || null
-  }
+    // Return the created snippet with MongoDB's _id converted to id
+    const createdSnippet = await this.collection.findOne({
+      _id: result.insertedId,
+    })
+    if (!createdSnippet) {
+      throw new Error('Failed to retrieve created snippet')
+    }
 
-  async findAll(
-    options: SnippetRepositoryOptions = { summaryOnly: false }
-  ): Promise<Partial<Snippet>[]> {
-    if (options.summaryOnly) {
-      const snippets = await this.collection
-        .find({}, { projection: { id: 1, summary: 1, createdAt: 1, _id: 0 } })
-        .sort({ updatedAt: -1 })
-        .toArray()
-      return snippets
-    } else {
-      // Return all fields when summaryOnly is false
-      const snippets = await this.collection
-        .find({})
-        .sort({ updatedAt: -1 })
-        .toArray()
-      return snippets
+    return {
+      id: createdSnippet._id.toString(),
+      text: createdSnippet.text,
+      summary: createdSnippet.summary,
+      createdAt: createdSnippet.createdAt,
+      updatedAt: createdSnippet.updatedAt,
     }
   }
 
+  async findById(id: string): Promise<Snippet | null> {
+    const snippet = await this.collection.findOne({ _id: new ObjectId(id) })
+    if (!snippet) {
+      return null
+    }
+
+    return {
+      id: snippet._id.toString(),
+      text: snippet.text,
+      summary: snippet.summary,
+      createdAt: snippet.createdAt,
+      updatedAt: snippet.updatedAt,
+    }
+  }
+
+  async findAll(): Promise<Snippet[]> {
+    const snippets = await this.collection
+      .find({})
+      .sort({ updatedAt: -1 })
+      .toArray()
+
+    return snippets.map(snippet => ({
+      id: snippet._id.toString(),
+      text: snippet.text,
+      summary: snippet.summary,
+      createdAt: snippet.createdAt,
+      updatedAt: snippet.updatedAt,
+    }))
+  }
+
   async update(id: string, updates: Partial<Snippet>): Promise<Snippet | null> {
+    const updateData: Partial<SnippetDocument> = {
+      ...updates,
+      updatedAt: new Date(),
+    }
+
     const result = await this.collection.findOneAndUpdate(
-      { id },
-      { $set: updates },
+      { _id: new ObjectId(id) },
+      { $set: updateData },
       { returnDocument: 'after' }
     )
-    return result || null
+
+    if (!result) {
+      return null
+    }
+
+    return {
+      id: result._id.toString(),
+      text: result.text,
+      summary: result.summary,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+    }
   }
 
   async delete(id: string): Promise<boolean> {
-    const result = await this.collection.deleteOne({ id })
+    const result = await this.collection.deleteOne({ _id: new ObjectId(id) })
     return result.deletedCount === 1
   }
 }

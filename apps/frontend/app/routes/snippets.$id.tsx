@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router'
 import { ScrollArea } from '../components/ui/scroll-area'
 import { Snippet } from '@hn-challenge/shared'
+import { API_BASE_URL } from '../lib/api'
 
 export default function SnippetView() {
   const { id } = useParams<{ id: string }>()
@@ -14,7 +15,7 @@ export default function SnippetView() {
 
     const fetchSnippet = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/snippets/${id}`)
+        const response = await fetch(`${API_BASE_URL}/snippets/${id}`)
         if (response.ok) {
           const snippet = await response.json()
           setSnippet(snippet) // GET /snippets/:id returns snippet directly, not wrapped in data

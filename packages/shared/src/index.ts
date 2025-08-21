@@ -11,7 +11,7 @@ export interface CreateSnippetRequest {
 }
 
 export interface SnippetsResponse {
-  data: Partial<Snippet[]>
+  data: Snippet[]
   total: number
   page: number
   limit: number

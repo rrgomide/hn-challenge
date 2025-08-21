@@ -22,16 +22,11 @@ export class SnippetService {
   }
 
   async createSnippet(request: CreateSnippetRequest): Promise<Snippet> {
-    const id = randomUUID()
     const summary = await this.generateSummary(request.text)
-    const now = new Date()
 
-    const snippet: Snippet = {
-      id,
+    const snippet: Partial<Snippet> = {
       text: request.text,
       summary,
-      createdAt: now,
-      updatedAt: now,
     }
 
     return await this.repository.create(snippet)
@@ -41,18 +36,17 @@ export class SnippetService {
     return await this.repository.findById(id)
   }
 
-  async getAllSnippets(
-    options: { summaryOnly: boolean } = { summaryOnly: false }
-  ): Promise<SnippetsResponse> {
-    const snippets = await this.repository.findAll(options)
+  async getAllSnippets(): Promise<SnippetsResponse> {
+    const snippets = await this.repository.findAll()
 
     // TODO: Implement pagination
-    return {
-      data: snippets,
+    const response: SnippetsResponse = {
+      data: snippets || [],
       total: snippets.length,
       page: 1,
       limit: snippets.length,
     }
+    return response
   }
 
   private async generateSummary(text: string): Promise<string> {

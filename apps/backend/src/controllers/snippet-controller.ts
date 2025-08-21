@@ -75,11 +75,7 @@ export class SnippetController {
 
   async getAllSnippets(request: Request, response: Response): Promise<void> {
     try {
-      const onlySummaries = request.query.onlySummaries === 'true'
-
-      const snippets = await this.snippetService.getAllSnippets({
-        summaryOnly: onlySummaries,
-      })
+      const snippets = await this.snippetService.getAllSnippets()
       response.json(snippets)
     } catch (error) {
       console.error('Error retrieving all snippets:', error)

@@ -5,7 +5,7 @@ import { Plus, MessageSquare, X } from 'lucide-react'
 import { Snippet } from '@hn-challenge/shared'
 
 interface AppSidebarProps {
-  snippets: Partial<Snippet[]>
+  snippets: Snippet[]
   onNewChat: () => void
   onClose?: () => void
 }
@@ -67,7 +67,7 @@ function NoSnippets() {
   )
 }
 
-function SnippetList({ snippets }: { snippets: Partial<Snippet[]> }) {
+function SnippetList({ snippets }: { snippets: Snippet[] }) {
   const navigate = useNavigate()
   const { id: selectedSnippetId } = useParams()
 

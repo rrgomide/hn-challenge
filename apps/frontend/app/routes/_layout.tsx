@@ -3,15 +3,15 @@ import { Outlet, useLoaderData } from 'react-router'
 import { AppSidebar } from '../components/app-sidebar'
 import { AppHeader } from '../components/app-header'
 import { useTheme } from '../contexts/theme-context'
-import { getSnippetsWithSummaries } from '../server/snippets.server'
+import { getSnippets } from '../server/snippets.server'
 import { Snippet } from '@hn-challenge/shared'
 
 interface LoaderData {
-  snippets: Partial<Snippet[]>
+  snippets: Snippet[]
 }
 
 export async function loader(): Promise<LoaderData> {
-  const { snippets } = await getSnippetsWithSummaries()
+  const { snippets } = await getSnippets()
   return { snippets }
 }
 

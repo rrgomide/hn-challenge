@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { Request, Response } from 'express'
+import { randomUUID } from 'crypto'
 
 // Mock the AI service module before any imports
 const mockSummarizeText = vi.fn()
@@ -17,18 +18,23 @@ import { SnippetService } from '../../services/snippet-service.js'
 const mockRepository = {
   snippets: new Map(),
   async create(snippet: any) {
-    this.snippets.set(snippet.id, snippet)
-    return snippet
+    const id = randomUUID()
+    const now = new Date()
+    const fullSnippet = {
+      id,
+      text: snippet.text,
+      summary: snippet.summary,
+      createdAt: now,
+      updatedAt: now,
+    }
+    this.snippets.set(id, fullSnippet)
+    return fullSnippet
   },
   async findById(id: string) {
     return this.snippets.get(id) || null
   },
-  async findAll(options: { summaryOnly: boolean } = { summaryOnly: false }) {
-    const snippets = Array.from(this.snippets.values())
-    if (options.summaryOnly) {
-      return snippets.map(({ id, summary }) => ({ id, summary }))
-    }
-    return snippets
+  async findAll() {
+    return Array.from(this.snippets.values())
   },
   async update(id: string, updates: any) {
     const existing = this.snippets.get(id)
