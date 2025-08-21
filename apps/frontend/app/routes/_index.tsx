@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router'
 import { Textarea } from '../components/ui/textarea'
 import { Button } from '../components/ui/button'
-import { Send, Loader2 } from 'lucide-react'
+import { Send, Loader2 as Loader } from 'lucide-react'
 
 interface OutletContext {
   onSnippetCreated: () => void
@@ -69,10 +69,10 @@ export default function Index() {
               <Button
                 type="submit"
                 disabled={!content.trim() || loading}
-                className="gap-2 w-full sm:w-auto touch-manipulation"
+                className="gap-2 w-full sm:w-48 touch-manipulation"
               >
                 {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader className="w-4 h-4 animate-spin" />
                 ) : (
                   <Send className="w-4 h-4" />
                 )}
