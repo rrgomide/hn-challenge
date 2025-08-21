@@ -9,7 +9,6 @@ type PartialSnippet = Pick<Snippet, 'id' | 'summary' | 'createdAt'>
 interface SidebarProps {
   snippets: PartialSnippet[]
   onNewChat: () => void
-  onSelectSnippet: (snippet: PartialSnippet) => void
   onClose?: () => void
 }
 
