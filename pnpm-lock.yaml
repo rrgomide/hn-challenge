@@ -10,13 +10,14 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.2
     devDependencies:
       cross-env:
         specifier: ^10.0.0
         version: 10.0.0
-      typescript:
-        specifier: ^5.0.0
-        version: 5.9.2
 
   apps/backend:
     dependencies:
