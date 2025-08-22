@@ -109,8 +109,10 @@ hn-challenge/
 
    ```env
    MONGODB_URI_DEV=mongodb://localhost:27017/hn-challenge
-   GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_key  # Optional
-   OPENAI_API_KEY=your_openai_key                   # Optional
+
+   # Provide at least one of those
+   GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_key
+   OPENAI_API_KEY=your_openai_key
    ```
 
 4. **Start development servers**
@@ -190,14 +192,15 @@ cd apps/frontend && pnpm test
 ```env
 MONGODB_URI_DEV=mongodb://localhost:27017/hn-challenge-dev
 MONGODB_URI_PROD=mongodb://localhost:27017/hn-challenge
-GOOGLE_GENERATIVE_AI_API_KEY=your_key_here  # Optional but recommended
-OPENAI_API_KEY=your_key_here                # Optional fallback
+# Provide at least one of those
+GOOGLE_GENERATIVE_AI_API_KEY=your_key_here
+OPENAI_API_KEY=your_key_here
 ```
 
 **Frontend** (optional):
 
 ```env
-VITE_API_BASE_URL=http://localhost:3000  # Custom API base URL
+VITE_API_BASE_URL=http://localhost:3030  # Custom API base URL
 ```
 
 ## 🤖 AI Integration
