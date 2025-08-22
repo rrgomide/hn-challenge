@@ -2,6 +2,37 @@
 
 A modern full-stack application for creating and managing code snippets with AI-powered text summarization. Built with TypeScript, React Router v7, Express.js, and MongoDB.
 
+## 📋 Table of Contents
+
+- [✨ Features](#-features)
+- [🏗️ Architecture](#️-architecture)
+  - [Backend](#backend)
+  - [Frontend](#frontend)
+  - [Shared Package](#shared-package)
+- [🚀 Quick Start](#-quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [🐳 Docker Development](#-docker-development)
+- [📋 Available Scripts](#-available-scripts)
+  - [Root Level Commands](#root-level-commands)
+  - [Backend Commands](#backend-commands-from-appsbackend)
+  - [Frontend Commands](#frontend-commands-from-appsfrontend)
+- [🧪 Testing](#-testing)
+- [🔑 Environment Configuration](#-environment-configuration)
+  - [Required Environment Variables](#required-environment-variables)
+- [🤖 AI Integration](#-ai-integration)
+- [🎨 Theming and Accessibility](#-theming-and-accessibility)
+- [🚀 Deployment](#-deployment)
+  - [Production Build](#production-build)
+  - [Docker Production](#docker-production)
+- [📁 Project Structure](#-project-structure)
+- [🛠️ Development Guidelines](#️-development-guidelines)
+- [🔄 Post-challenge reflection](#-post-challenge-reflection)
+  - [Future Improvements](#future-improvements)
+  - [Trade-offs Made](#trade-offs-made)
+- [🤝 Contributing](#-contributing)
+- [📝 License](#-license)
+
 ## ✨ Features
 
 - **Snippet Management**: Create, store, and retrieve code snippets with syntax highlighting
