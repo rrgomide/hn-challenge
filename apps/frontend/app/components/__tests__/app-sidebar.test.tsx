@@ -11,7 +11,7 @@ vi.mock('react-router', async () => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useParams: () => ({ id: '1' })
+    useParams: () => ({ id: '1' }),
   }
 })
 
@@ -25,15 +25,15 @@ const mockSnippets: Snippet[] = [
     text: 'Test snippet 1',
     summary: 'First snippet',
     createdAt: new Date('2023-01-01T00:00:00.000Z'),
-    updatedAt: new Date('2023-01-01T00:00:00.000Z')
+    updatedAt: new Date('2023-01-01T00:00:00.000Z'),
   },
   {
     id: '2',
     text: 'Test snippet 2',
     summary: 'Second snippet',
     createdAt: new Date('2023-01-02T00:00:00.000Z'),
-    updatedAt: new Date('2023-01-02T00:00:00.000Z')
-  }
+    updatedAt: new Date('2023-01-02T00:00:00.000Z'),
+  },
 ]
 
 describe('AppSidebar', () => {
@@ -48,7 +48,7 @@ describe('AppSidebar', () => {
         <AppSidebar snippets={[]} onNewChat={mockOnNewChat} />
       </MockRouter>
     )
-    
+
     expect(screen.getByText('New Chat')).toBeInTheDocument()
   })
 
@@ -60,10 +60,10 @@ describe('AppSidebar', () => {
         <AppSidebar snippets={[]} onNewChat={mockOnNewChat} />
       </MockRouter>
     )
-    
+
     const newChatButton = screen.getByText('New Chat')
     await user.click(newChatButton)
-    
+
     expect(mockOnNewChat).toHaveBeenCalledTimes(1)
     expect(mockNavigate).toHaveBeenCalledWith('/')
   })
@@ -73,10 +73,14 @@ describe('AppSidebar', () => {
     const mockOnNewChat = vi.fn()
     render(
       <MockRouter>
-        <AppSidebar snippets={[]} onNewChat={mockOnNewChat} onClose={mockOnClose} />
+        <AppSidebar
+          snippets={[]}
+          onNewChat={mockOnNewChat}
+          onClose={mockOnClose}
+        />
       </MockRouter>
     )
-    
+
     expect(screen.getByLabelText('Close sidebar')).toBeInTheDocument()
   })
 
@@ -87,7 +91,7 @@ describe('AppSidebar', () => {
         <AppSidebar snippets={[]} onNewChat={mockOnNewChat} />
       </MockRouter>
     )
-    
+
     expect(screen.queryByLabelText('Close sidebar')).not.toBeInTheDocument()
   })
 
@@ -97,13 +101,17 @@ describe('AppSidebar', () => {
     const mockOnNewChat = vi.fn()
     render(
       <MockRouter>
-        <AppSidebar snippets={[]} onNewChat={mockOnNewChat} onClose={mockOnClose} />
+        <AppSidebar
+          snippets={[]}
+          onNewChat={mockOnNewChat}
+          onClose={mockOnClose}
+        />
       </MockRouter>
     )
-    
+
     const closeButton = screen.getByLabelText('Close sidebar')
     await user.click(closeButton)
-    
+
     expect(mockOnClose).toHaveBeenCalledTimes(1)
   })
 
@@ -114,7 +122,7 @@ describe('AppSidebar', () => {
         <AppSidebar snippets={[]} onNewChat={mockOnNewChat} />
       </MockRouter>
     )
-    
+
     expect(screen.getByText('No snippets yet')).toBeInTheDocument()
   })
 
@@ -125,7 +133,7 @@ describe('AppSidebar', () => {
         <AppSidebar snippets={[]} onNewChat={mockOnNewChat} />
       </MockRouter>
     )
-    
+
     expect(screen.getByText('No snippets yet')).toBeInTheDocument()
   })
 
@@ -136,7 +144,7 @@ describe('AppSidebar', () => {
         <AppSidebar snippets={mockSnippets} onNewChat={mockOnNewChat} />
       </MockRouter>
     )
-    
+
     expect(screen.getByText('First snippet')).toBeInTheDocument()
     expect(screen.getByText('Second snippet')).toBeInTheDocument()
     expect(screen.queryByText('No snippets yet')).not.toBeInTheDocument()
@@ -150,11 +158,13 @@ describe('AppSidebar', () => {
         <AppSidebar snippets={mockSnippets} onNewChat={mockOnNewChat} />
       </MockRouter>
     )
-    
+
     const firstSnippet = screen.getByText('First snippet')
     await user.click(firstSnippet)
-    
-    expect(mockNavigate).toHaveBeenCalledWith('/snippets/1')
+
+    // NavLink handles navigation internally, so we check that the link has the correct href
+    const snippetLink = firstSnippet.closest('a')
+    expect(snippetLink).toHaveAttribute('href', '/snippets/1')
   })
 
   it('displays formatted creation dates for snippets', () => {
@@ -164,7 +174,7 @@ describe('AppSidebar', () => {
         <AppSidebar snippets={mockSnippets} onNewChat={mockOnNewChat} />
       </MockRouter>
     )
-    
+
     expect(screen.getByText('12/31/2022')).toBeInTheDocument()
     expect(screen.getByText('1/1/2023')).toBeInTheDocument()
   })
@@ -174,34 +184,44 @@ describe('AppSidebar', () => {
     const mockOnNewChat = vi.fn()
     render(
       <MockRouter>
-        <AppSidebar snippets={snippetWithoutSummary} onNewChat={mockOnNewChat} />
+        <AppSidebar
+          snippets={snippetWithoutSummary}
+          onNewChat={mockOnNewChat}
+        />
       </MockRouter>
     )
-    
+
     expect(screen.getByText('Untitled')).toBeInTheDocument()
   })
 
   it('shows "Unknown date" for snippets without createdAt', () => {
-    const snippetWithoutDate = [{ ...mockSnippets[0], createdAt: undefined as any }]
+    const snippetWithoutDate = [
+      { ...mockSnippets[0], createdAt: undefined as any },
+    ]
     const mockOnNewChat = vi.fn()
     render(
       <MockRouter>
         <AppSidebar snippets={snippetWithoutDate} onNewChat={mockOnNewChat} />
       </MockRouter>
     )
-    
+
     expect(screen.getByText('Unknown date')).toBeInTheDocument()
   })
 
   it('filters out falsy snippets', () => {
-    const snippetsWithNulls = [mockSnippets[0], undefined, mockSnippets[1], undefined]
+    const snippetsWithNulls = [
+      mockSnippets[0],
+      undefined,
+      mockSnippets[1],
+      undefined,
+    ]
     const mockOnNewChat = vi.fn()
     render(
       <MockRouter>
         <AppSidebar snippets={snippetsWithNulls} onNewChat={mockOnNewChat} />
       </MockRouter>
     )
-    
+
     expect(screen.getByText('First snippet')).toBeInTheDocument()
     expect(screen.getByText('Second snippet')).toBeInTheDocument()
   })
@@ -213,12 +233,14 @@ describe('AppSidebar', () => {
         <AppSidebar snippets={mockSnippets} onNewChat={mockOnNewChat} />
       </MockRouter>
     )
-    
-    const buttons = container.querySelectorAll('button')
-    const snippetButtons = Array.from(buttons).filter(button => 
-      button.textContent?.includes('First snippet') || button.textContent?.includes('Second snippet')
+
+    const links = container.querySelectorAll('a')
+    const snippetLinks = Array.from(links).filter(
+      link =>
+        link.textContent?.includes('First snippet') ||
+        link.textContent?.includes('Second snippet')
     )
-    
-    expect(snippetButtons).toHaveLength(2)
+
+    expect(snippetLinks).toHaveLength(2)
   })
 })
