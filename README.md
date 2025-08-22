@@ -2,6 +2,14 @@
 
 A modern full-stack application for creating and managing code snippets with AI-powered text summarization. Built with TypeScript, React Router v7, Express.js, and MongoDB.
 
+## TLDR;
+
+- Ensure you have `pnpm v10.14.0` or greater
+- Ensure you have `node.js v20.x` or greater
+- Run `pnpm install`
+- Run `pnpm dev` to develop
+- Run `pnpm docker:up` to run all apps in Docker Containers
+
 ## 📋 Table of Contents
 
 - [✨ Features](#-features)
