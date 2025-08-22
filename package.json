@@ -13,7 +13,8 @@
     "docker:up": "cd docker && docker compose up --build",
     "docker:down": "cd docker && docker compose down",
     "docker:logs": "cd docker && docker compose logs -f",
-    "docker:restart": "pnpm docker:down && pnpm docker:up"
+    "docker:restart": "pnpm docker:down && pnpm docker:up",
+    "postinstall": "pnpm --filter @hn-challenge/shared build"
   },
   "dependencies": {
     "typescript": "^5.9.2"
@@ -30,7 +31,7 @@
     ]
   },
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ]
 }
