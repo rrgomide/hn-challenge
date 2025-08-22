@@ -4,6 +4,7 @@ A modern full-stack application for creating and managing code snippets with AI-
 
 ## TLDR;
 
+- Setup your `.env` keys in `app/backend` based on `app/backend/.env.example`
 - Ensure you have `pnpm v10.14.0` or greater
 - Ensure you have `node.js v20.x` or greater
 - Run `pnpm install`
@@ -210,6 +211,69 @@ OPENAI_API_KEY=your_key_here
 ```env
 VITE_API_BASE_URL=http://localhost:3030  # Custom API base URL
 ```
+
+### API Key Setup Instructions
+
+#### Google Generative AI (Gemini) API Key
+
+1. **Visit Google AI Studio**
+
+   - Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+   - Sign in with your Google account
+
+2. **Create API Key**
+
+   - Click "Create API Key" button
+   - Choose "Create API Key" from the dropdown
+   - Your API key will be generated and displayed
+
+3. **Copy and Store Securely**
+
+   - Copy the generated API key
+   - Add it to your `apps/backend/.env` file as `GOOGLE_GENERATIVE_AI_API_KEY=your_key_here`
+   - **Important**: Never commit API keys to version control
+
+4. **Usage Limits**
+   - Free tier includes 15 requests per minute
+   - Monitor usage in the [Google AI Studio dashboard](https://makersuite.google.com/app/apikey)
+
+#### OpenAI API Key
+
+1. **Visit OpenAI Platform**
+
+   - Go to [OpenAI Platform](https://platform.openai.com/api-keys)
+   - Sign in or create an account
+
+2. **Create API Key**
+
+   - Click "Create new secret key"
+   - Give your key a descriptive name (e.g., "House Numbers Challenge")
+   - Click "Create secret key"
+
+3. **Copy and Store Securely**
+
+   - Copy the generated API key immediately (it won't be shown again)
+   - Add it to your `apps/backend/.env` file as `OPENAI_API_KEY=your_key_here`
+   - **Important**: Never commit API keys to version control
+
+4. **Usage Limits**
+   - Free tier includes $5 credit for new accounts
+   - Monitor usage in the [OpenAI Platform dashboard](https://platform.openai.com/usage)
+   - Set up billing to avoid service interruptions
+
+#### Security Best Practices
+
+- **Environment Variables**: Always use environment variables, never hardcode API keys
+- **Git Ignore**: Ensure `.env` files are in your `.gitignore`
+- **Key Rotation**: Regularly rotate your API keys
+- **Access Control**: Only share API keys with trusted team members
+- **Monitoring**: Set up usage alerts to avoid unexpected charges
+
+#### Troubleshooting
+
+- **Invalid API Key**: Verify the key is copied correctly without extra spaces
+- **Rate Limiting**: Check your API usage limits in the respective dashboards
+- **Service Unavailable**: The app will gracefully fallback between Google and OpenAI if one service is down
 
 ## 🤖 AI Integration
 
