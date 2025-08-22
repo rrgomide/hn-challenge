@@ -1,8 +1,9 @@
-import { useNavigate, useParams } from 'react-router'
-import { ScrollArea } from './ui/scroll-area'
-import { Button } from './ui/button'
-import { Plus, MessageSquare, X } from 'lucide-react'
 import { Snippet } from '@hn-challenge/shared'
+import { MessageSquare, Plus, X } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router'
+import { cn } from '../lib/utils'
+import { Button } from './ui/button'
+import { ScrollArea } from './ui/scroll-area'
 
 interface AppSidebarProps {
   snippets: (Snippet | undefined)[]
@@ -12,7 +13,7 @@ interface AppSidebarProps {
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
-    <nav 
+    <nav
       className="flex flex-col h-full w-80 lg:w-64 bg-card border-r border-border"
       role="navigation"
       aria-label="Snippet navigation"
@@ -73,9 +74,6 @@ function NoSnippets() {
 }
 
 function SnippetList({ snippets }: { snippets: (Snippet | undefined)[] }) {
-  const navigate = useNavigate()
-  const { id: selectedSnippetId } = useParams()
-
   return (
     <div className="p-2">
       <div className="space-y-1" role="list" aria-label="Snippets">
@@ -90,17 +88,26 @@ function SnippetList({ snippets }: { snippets: (Snippet | undefined)[] }) {
             : 'Unknown date'
 
           return (
-            <Button
+            <NavLink
               key={snippet.id}
-              onClick={() => navigate(`/snippets/${snippet.id}`)}
-              variant={selectedSnippetId === snippet.id ? 'secondary' : 'ghost'}
-              className="w-full justify-start p-2 h-auto text-left touch-manipulation"
+              to={`/snippets/${snippet.id}`}
+              prefetch="intent"
+              className={({ isActive }) =>
+                cn(
+                  'w-full justify-start p-2 h-auto text-left touch-manipulation block',
+                  isActive
+                    ? 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                    : 'hover:bg-accent hover:text-accent-foreground'
+                )
+              }
               aria-label={`View snippet: ${snippetTitle}, created on ${snippetDate}`}
-              aria-current={selectedSnippetId === snippet.id ? 'page' : undefined}
               role="listitem"
             >
               <div className="flex items-start gap-2 w-full">
-                <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                <MessageSquare
+                  className="w-4 h-4 mt-0.5 flex-shrink-0"
+                  aria-hidden="true"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">
                     {snippetTitle}
@@ -110,7 +117,7 @@ function SnippetList({ snippets }: { snippets: (Snippet | undefined)[] }) {
                   </div>
                 </div>
               </div>
-            </Button>
+            </NavLink>
           )
         })}
       </div>
