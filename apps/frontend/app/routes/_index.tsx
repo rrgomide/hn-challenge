@@ -46,6 +46,22 @@ function Title() {
   )
 }
 
+function KeyboardShortcuts() {
+  return (
+    <p className="hidden sm:block text-sm text-muted-foreground text-center sm:text-left">
+      💡 You can press{' '}
+      <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted rounded border">
+        Ctrl + Enter
+      </kbd>{' '}
+      or{' '}
+      <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted rounded border">
+        ⌘ + Enter
+      </kbd>{' '}
+      to Summarize
+    </p>
+  )
+}
+
 function SummarizeForm() {
   const navigation = useNavigation()
   const actionData = useActionData<typeof action>()
@@ -63,15 +79,16 @@ function SummarizeForm() {
   return (
     <Form ref={formRef} method="post" className="space-y-4">
       <Textarea
+        autoFocus
+        required
         name="text"
         placeholder="Paste your text here to get a summary..."
         className="min-h-[150px] sm:min-h-[200px] resize-none touch-manipulation"
-        required
         aria-label="Text content for summarization"
         aria-describedby="textarea-help"
-        autoFocus
         onKeyDown={handleKeyDown}
       />
+
       <div id="textarea-help" className="sr-only">
         Enter or paste the text content you want to summarize. This field is
         required.
@@ -83,7 +100,9 @@ function SummarizeForm() {
         </div>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex-col sm:flex sm:flex-row sm:justify-between sm:items-center gap-2">
+        <KeyboardShortcuts />
+
         <Button
           type="submit"
           disabled={isSubmitting}
