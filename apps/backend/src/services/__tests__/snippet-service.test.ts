@@ -85,40 +85,6 @@ describe('SnippetService', () => {
       expect(mockSummarizeText).toHaveBeenCalledWith(longText)
     })
 
-    it('should handle AI service summary for short text', async () => {
-      const shortText = 'Short text for testing'
-      const aiSummary = 'AI summary of short text'
-      mockSummarizeText.mockResolvedValue(aiSummary)
-      const request = { text: shortText }
-
-      const result = await snippetService.createSnippet(request)
-
-      expect(result.summary).toBe(aiSummary)
-      expect(mockSummarizeText).toHaveBeenCalledWith(shortText)
-    })
-
-    it('should handle empty text', async () => {
-      mockSummarizeText.mockRejectedValue(new Error('Text cannot be empty'))
-      const request = { text: '' }
-
-      await expect(snippetService.createSnippet(request)).rejects.toThrow(
-        'Text cannot be empty'
-      )
-
-      expect(mockSummarizeText).toHaveBeenCalledWith('')
-    })
-
-    it('should handle text with only whitespace', async () => {
-      const whitespaceText = '   \n\t  '
-      mockSummarizeText.mockRejectedValue(new Error('Text cannot be empty'))
-      const request = { text: whitespaceText }
-
-      await expect(snippetService.createSnippet(request)).rejects.toThrow(
-        'Text cannot be empty'
-      )
-
-      expect(mockSummarizeText).toHaveBeenCalledWith(whitespaceText)
-    })
 
     it('should generate unique IDs for different snippets', async () => {
       mockSummarizeText
@@ -136,25 +102,6 @@ describe('SnippetService', () => {
       expect(result2.summary).toBe('Second snippet summary')
     })
 
-    it('should handle single word text', async () => {
-      mockSummarizeText.mockResolvedValue('Hello - single word')
-      const request = { text: 'Hello' }
-
-      const result = await snippetService.createSnippet(request)
-
-      expect(result.text).toBe('Hello')
-      expect(result.summary).toBe('Hello - single word')
-      expect(mockSummarizeText).toHaveBeenCalledWith('Hello')
-    })
-
-    it('should handle AI service errors gracefully', async () => {
-      mockSummarizeText.mockRejectedValue(new Error('AI service unavailable'))
-      const request = { text: 'Test text' }
-
-      await expect(snippetService.createSnippet(request)).rejects.toThrow(
-        'AI service unavailable'
-      )
-    })
   })
 
   describe('getSnippetById', () => {

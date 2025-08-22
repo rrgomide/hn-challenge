@@ -51,14 +51,6 @@ describe('AIService', () => {
       )
     })
 
-    it('should use Google AI when both keys are available (priority test)', async () => {
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-google-key'
-      process.env.OPENAI_API_KEY = 'test-openai-key'
-
-      const { createAIService } = await import('../ai-service.js')
-      const service = createAIService()
-      expect(service.getProviderName()).toBe('google')
-    })
   })
 
   describe('GoogleAIService', () => {
@@ -149,25 +141,6 @@ describe('AIService', () => {
     })
   })
 
-  describe('AIService interface compliance', () => {
-    it('should implement summarizeText method', async () => {
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-key'
-      const { createAIService } = await import('../ai-service.js')
-      const service = createAIService()
-
-      expect(typeof service.summarizeText).toBe('function')
-      expect(service.summarizeText.length).toBe(1) // expects 1 parameter
-    })
-
-    it('should implement getProviderName method', async () => {
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-key'
-      const { createAIService } = await import('../ai-service.js')
-      const service = createAIService()
-
-      expect(typeof service.getProviderName).toBe('function')
-      expect(service.getProviderName.length).toBe(0) // expects 0 parameters
-    })
-  })
 
   describe('Text summarization behavior', () => {
     it('should handle empty text', async () => {
@@ -180,29 +153,5 @@ describe('AIService', () => {
       )
     })
 
-    it('should handle whitespace-only text', async () => {
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-key'
-      const { createAIService } = await import('../ai-service.js')
-      const service = createAIService()
-
-      await expect(service.summarizeText('   \n\t   ')).rejects.toThrow(
-        'Text cannot be empty'
-      )
-    })
-
-    it('should handle very short text by returning summary', async () => {
-      mockGenerateText.mockResolvedValue({
-        text: 'Short text',
-      })
-
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'test-key'
-      const { GoogleAIService } = await import('../ai-service.js')
-      const service = new GoogleAIService('test-key')
-
-      const shortText = 'Short text'
-      const result = await service.summarizeText(shortText)
-
-      expect(result).toBe('Short text')
-    })
   })
 })

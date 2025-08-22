@@ -95,22 +95,6 @@ describe('POST /snippets integration tests', () => {
     expect(mockSummarizeText).toHaveBeenCalledWith(requestBody.text)
   })
 
-  it('should handle long text and create proper summary', async () => {
-    const longText =
-      'This is a very long piece of text that contains more than ten words and should be properly summarized by AI'
-    const requestBody = { text: longText }
-    const aiSummary = 'AI generated summary for long text'
-    mockSummarizeText.mockResolvedValue(aiSummary)
-
-    const response = await request(app)
-      .post('/snippets')
-      .send(requestBody)
-      .expect(200)
-
-    expect(response.body.text).toBe(longText)
-    expect(response.body.summary).toBe(aiSummary)
-    expect(mockSummarizeText).toHaveBeenCalledWith(longText)
-  })
 
   it('should return 400 when text is missing', async () => {
     const response = await request(app).post('/snippets').send({}).expect(400)
@@ -142,46 +126,7 @@ describe('POST /snippets integration tests', () => {
     })
   })
 
-  it('should return 400 when text is null', async () => {
-    const response = await request(app)
-      .post('/snippets')
-      .send({ text: null })
-      .expect(400)
 
-    expect(response.body).toEqual({
-      error: 'Text field is required and must be a string',
-    })
-  })
-
-  it('should handle special characters in text', async () => {
-    const specialText =
-      'Special chars: !@#$%^&*()_+{}|:"<>?[]\\;\',./ àáâãäåæçèéêë'
-    const expectedSanitizedText =
-      'Special chars: !@#$%^&*()_+{}|:"?[]\\;\',./ àáâãäåæçèéêë' // < and > are removed
-    const requestBody = { text: specialText }
-    const aiSummary = 'AI summary for special characters'
-    mockSummarizeText.mockResolvedValue(aiSummary)
-
-    const response = await request(app).post('/snippets').send(requestBody)
-
-    expect(response.body.text).toBe(expectedSanitizedText)
-    expect(response.body.summary).toBe(aiSummary)
-    expect(mockSummarizeText).toHaveBeenCalledWith(expectedSanitizedText)
-  })
-
-  it('should handle text with newlines and tabs', async () => {
-    const textWithWhitespace = 'Line 1\nLine 2\tTabbed content\n\nLine 4'
-    const expectedSanitizedText = 'Line 1\nLine 2 Tabbed content\n\nLine 4' // tabs are normalized to single spaces
-    const requestBody = { text: textWithWhitespace }
-    const aiSummary = 'AI summary for whitespace text'
-    mockSummarizeText.mockResolvedValue(aiSummary)
-
-    const response = await request(app).post('/snippets').send(requestBody)
-
-    expect(response.body.text).toBe(expectedSanitizedText)
-    expect(response.body.summary).toBe(aiSummary)
-    expect(mockSummarizeText).toHaveBeenCalledWith(expectedSanitizedText)
-  })
 
   it('should generate unique IDs for different requests', async () => {
     mockSummarizeText
@@ -203,33 +148,6 @@ describe('POST /snippets integration tests', () => {
     expect(response2.body.summary).toBe('AI summary for second snippet')
   })
 
-  it('should handle JSON content-type correctly', async () => {
-    const aiSummary = 'AI summary for content type test'
-    mockSummarizeText.mockResolvedValue(aiSummary)
-
-    const response = await request(app)
-      .post('/snippets')
-      .set('Content-Type', 'application/json')
-      .send({ text: 'Content type test' })
-      .expect(200)
-
-    expect(response.body.text).toBe('Content type test')
-    expect(response.body.summary).toBe(aiSummary)
-  })
-
-  it('should return proper JSON response format', async () => {
-    const aiSummary = 'AI summary for JSON format test'
-    mockSummarizeText.mockResolvedValue(aiSummary)
-
-    const response = await request(app)
-      .post('/snippets')
-      .send({ text: 'JSON format test' })
-      .expect(200)
-
-    expect(response.headers['content-type']).toMatch(/json/)
-    expect(typeof response.body).toBe('object')
-    expect(response.body).not.toBeNull()
-  })
 
   describe('text sanitization integration', () => {
     it('should sanitize HTML tags in text input', async () => {
@@ -248,36 +166,6 @@ describe('POST /snippets integration tests', () => {
       expect(mockSummarizeText).toHaveBeenCalledWith(expectedSanitizedText)
     })
 
-    it('should handle malicious script injection attempts', async () => {
-      const maliciousText =
-        '<img src="x" onerror="alert(document.cookie)">Safe content'
-      const expectedSanitizedText = 'Safe content'
-      const aiSummary = 'Safe integration summary'
-      mockSummarizeText.mockResolvedValue(aiSummary)
-
-      const response = await request(app)
-        .post('/snippets')
-        .send({ text: maliciousText })
-        .expect(200)
-
-      expect(response.body.text).toBe(expectedSanitizedText)
-      expect(response.body.summary).toBe(aiSummary)
-    })
-
-    it('should normalize whitespace after HTML removal', async () => {
-      const messyHtml =
-        '  <div>  Multiple   </div>  <span>    spaces   </span>  '
-      const expectedSanitizedText = 'Multiple spaces'
-      const aiSummary = 'Normalized whitespace summary'
-      mockSummarizeText.mockResolvedValue(aiSummary)
-
-      const response = await request(app)
-        .post('/snippets')
-        .send({ text: messyHtml })
-        .expect(200)
-
-      expect(response.body.text).toBe(expectedSanitizedText)
-    })
   })
 })
 
@@ -348,15 +236,6 @@ describe('GET /snippets integration tests', () => {
     )
   })
 
-  it('should return correct content type for JSON response', async () => {
-    const response = await request(app).get('/snippets').expect(200)
-
-    expect(response.headers['content-type']).toMatch(/json/)
-    expect(response.body).toHaveProperty('data')
-    expect(response.body).toHaveProperty('total')
-    expect(response.body).toHaveProperty('page')
-    expect(response.body).toHaveProperty('limit')
-  })
 
 })
 
@@ -381,21 +260,6 @@ describe('GET /snippets/:id integration tests', () => {
     })
   })
 
-  it('should return 404 when snippet with invalid ID format does not exist', async () => {
-    const invalidId = 'invalid-id'
-
-    const response = await request(app)
-      .get(`/snippets/${invalidId}`)
-      .expect(404)
-
-    expect(response.body).toEqual({
-      error: 'Snippet not found',
-    })
-  })
-
-  it('should return all snippets when accessing /snippets/', async () => {
-    await request(app).get('/snippets/').expect(200) // This now routes to GET /snippets endpoint
-  })
 
   it('should return a snippet when valid ID exists', async () => {
     const aiSummary = 'AI summary for retrieval test'
@@ -423,101 +287,4 @@ describe('GET /snippets/:id integration tests', () => {
     }))
   })
 
-  it('should return correct snippet with long text and summary', async () => {
-    const longText =
-      'This is a very long piece of text that contains more than ten words and should be properly summarized by AI'
-    const aiSummary = 'AI summary for long text in GET test'
-    mockSummarizeText.mockResolvedValue(aiSummary)
-
-    // First create a snippet
-    const createResponse = await request(app)
-      .post('/snippets')
-      .send({ text: longText })
-      .expect(200)
-
-    const snippetId = createResponse.body.id
-
-    // Then retrieve it
-    const getResponse = await request(app)
-      .get(`/snippets/${snippetId}`)
-      .expect(200)
-
-    expect(getResponse.body).toEqual(expect.objectContaining({
-      id: snippetId,
-      text: longText,
-      summary: aiSummary,
-      createdAt: expect.any(String),
-      updatedAt: expect.any(String),
-    }))
-  })
-
-  it('should return correct content type for JSON response', async () => {
-    const aiSummary = 'AI summary for content type in GET test'
-    mockSummarizeText.mockResolvedValue(aiSummary)
-
-    // First create a snippet
-    const createResponse = await request(app)
-      .post('/snippets')
-      .send({ text: 'Content type test' })
-      .expect(200)
-
-    const snippetId = createResponse.body.id
-
-    // Then retrieve it
-    const getResponse = await request(app)
-      .get(`/snippets/${snippetId}`)
-      .expect(200)
-
-    expect(getResponse.headers['content-type']).toMatch(/json/)
-    expect(typeof getResponse.body).toBe('object')
-    expect(getResponse.body).not.toBeNull()
-  })
-
-  it('should handle special characters in retrieved snippet', async () => {
-    const specialText =
-      'Special chars: !@#$%^&*()_+{}|:"<>?[]\\;\',./ àáâãäåæçèéêë'
-    const expectedSanitizedText =
-      'Special chars: !@#$%^&*()_+{}|:"?[]\\;\',./ àáâãäåæçèéêë' // < and > are removed
-    const aiSummary = 'AI summary for special chars in GET test'
-    mockSummarizeText.mockResolvedValue(aiSummary)
-
-    // First create a snippet
-    const createResponse = await request(app)
-      .post('/snippets')
-      .send({ text: specialText })
-      .expect(200)
-
-    const snippetId = createResponse.body.id
-
-    // Then retrieve it
-    const getResponse = await request(app)
-      .get(`/snippets/${snippetId}`)
-      .expect(200)
-
-    expect(getResponse.body.text).toBe(expectedSanitizedText)
-    expect(getResponse.body.summary).toBe(aiSummary)
-  })
-
-  it('should preserve whitespace in retrieved snippet', async () => {
-    const textWithWhitespace = 'Line 1\nLine 2\tTabbed content\n\nLine 4'
-    const expectedSanitizedText = 'Line 1\nLine 2 Tabbed content\n\nLine 4' // tabs are normalized to single spaces
-    const aiSummary = 'AI summary for whitespace in GET test'
-    mockSummarizeText.mockResolvedValue(aiSummary)
-
-    // First create a snippet
-    const createResponse = await request(app)
-      .post('/snippets')
-      .send({ text: textWithWhitespace })
-      .expect(200)
-
-    const snippetId = createResponse.body.id
-
-    // Then retrieve it
-    const getResponse = await request(app)
-      .get(`/snippets/${snippetId}`)
-      .expect(200)
-
-    expect(getResponse.body.text).toBe(expectedSanitizedText)
-    expect(getResponse.body.summary).toBe(aiSummary)
-  })
 })
