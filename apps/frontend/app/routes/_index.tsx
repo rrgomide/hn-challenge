@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button'
 import { Send, Loader2 as Loader } from 'lucide-react'
 import { useNavigation } from 'react-router'
 import { postSnippet } from '../server/snippets.server'
+import { useRef } from 'react'
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData()
@@ -48,10 +49,19 @@ function Title() {
 function SummarizeForm() {
   const navigation = useNavigation()
   const actionData = useActionData<typeof action>()
+  const formRef = useRef<HTMLFormElement>(null)
   const isSubmitting = navigation.state === 'submitting'
+  const shouldRenderError = actionData?.error && navigation.state === 'idle'
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault()
+      formRef.current?.requestSubmit()
+    }
+  }
 
   return (
-    <Form method="post" className="space-y-4">
+    <Form ref={formRef} method="post" className="space-y-4">
       <Textarea
         name="text"
         placeholder="Paste your text here to get a summary..."
@@ -59,12 +69,15 @@ function SummarizeForm() {
         required
         aria-label="Text content for summarization"
         aria-describedby="textarea-help"
+        autoFocus
+        onKeyDown={handleKeyDown}
       />
       <div id="textarea-help" className="sr-only">
-        Enter or paste the text content you want to summarize. This field is required.
+        Enter or paste the text content you want to summarize. This field is
+        required.
       </div>
 
-      {actionData?.error && (
+      {shouldRenderError && (
         <div role="alert" className="text-red-500" aria-live="polite">
           {actionData.error}
         </div>
