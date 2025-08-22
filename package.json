@@ -2,7 +2,7 @@
   "name": "hn-challenge-raphael-gomide",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter @hn-challenge/shared build && cd docker && docker compose up --build -d mongodb && cd .. && cross-env NODE_ENV=development pnpm run --parallel dev",
+    "dev": "pnpm --filter @hn-challenge/shared build && docker compose -f docker/docker-compose.yml up --build -d mongodb && cross-env NODE_ENV=development pnpm run --parallel dev",
     "build": "pnpm --filter @hn-challenge/shared build && pnpm --filter @hn-challenge/backend build && pnpm --filter @hn-challenge/frontend build",
     "start": "pnpm run --recursive start",
     "lint": "pnpm run --recursive lint",
@@ -10,9 +10,9 @@
     "typegen": "react-router typegen",
     "test:backend": "pnpm --filter @hn-challenge/backend test:run",
     "test:frontend": "pnpm --filter @hn-challenge/frontend test:run",
-    "docker:up": "cd docker && docker compose up --build",
-    "docker:down": "cd docker && docker compose down",
-    "docker:logs": "cd docker && docker compose logs -f",
+    "docker:up": "docker compose -f docker/docker-compose.yml up --build",
+    "docker:down": "docker compose -f docker/docker-compose.yml down",
+    "docker:logs": "docker compose -f docker/docker-compose.yml logs -f",
     "docker:restart": "pnpm docker:down && pnpm docker:up",
     "postinstall": "pnpm --filter @hn-challenge/shared build",
     "clean": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +"
