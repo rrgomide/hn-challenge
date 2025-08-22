@@ -6,8 +6,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
+    "build": "tsc --project .",
+    "typecheck": "tsc --noEmit --project .",
     "lint": "eslint src --ext .ts"
   },
   "devDependencies": {
