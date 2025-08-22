@@ -14,7 +14,8 @@
     "docker:down": "cd docker && docker compose down",
     "docker:logs": "cd docker && docker compose logs -f",
     "docker:restart": "pnpm docker:down && pnpm docker:up",
-    "postinstall": "pnpm --filter @hn-challenge/shared build"
+    "postinstall": "pnpm --filter @hn-challenge/shared build",
+    "clean": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +"
   },
   "dependencies": {
     "typescript": "^5.9.2"
