@@ -1,5 +1,6 @@
-import { Moon, Sun, Menu } from 'lucide-react'
+import { Moon, Sun, Menu, LogOut, User } from 'lucide-react'
 import { Button } from './ui/button'
+import { useAuth } from '../contexts/auth-context'
 
 interface AppHeaderProps {
   onToggleTheme?: () => void
@@ -38,6 +39,34 @@ function AppTitle() {
   return <h1 className="text-lg font-semibold">Snippet Summarizer</h1>
 }
 
+function UserInfo() {
+  const { user, logout } = useAuth()
+  
+  if (!user) return null
+  
+  return (
+    <div className="flex items-center space-x-2">
+      <div className="hidden sm:flex items-center space-x-2 px-3 py-1 bg-muted rounded-md">
+        <User className="h-4 w-4" />
+        <span className="text-sm font-medium">{user.username}</span>
+        <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-background rounded">
+          {user.role}
+        </span>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={logout}
+        className="h-9 touch-manipulation"
+        aria-label="Sign out"
+      >
+        <LogOut className="h-4 w-4 sm:mr-2" />
+        <span className="hidden sm:inline">Sign Out</span>
+      </Button>
+    </div>
+  )
+}
+
 function ThemeToggle({ onToggleTheme }: { onToggleTheme: () => void }) {
   return (
     <Button
@@ -66,6 +95,7 @@ export function AppHeader({ onToggleTheme, onToggleSidebar }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center space-x-2">
+        <UserInfo />
         {onToggleTheme && <ThemeToggle onToggleTheme={onToggleTheme} />}
       </div>
     </Wrapper>

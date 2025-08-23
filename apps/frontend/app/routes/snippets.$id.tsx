@@ -2,27 +2,63 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router'
 import { ScrollArea } from '../components/ui/scroll-area'
 import { Snippet } from '@hn-challenge/shared'
+import { useAuth } from '../contexts/auth-context'
 import { API_BASE_URL } from '../lib/api'
+
+// Client-side function to fetch a single snippet
+async function fetchSnippet(id: string, token?: string): Promise<{
+  snippet: Snippet | null
+  error?: string
+}> {
+  try {
+    const headers: Record<string, string> = {}
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}/snippets/${id}`, { headers })
+    
+    if (response.ok) {
+      const snippet: Snippet = await response.json()
+      return { snippet }
+    }
+    
+    if (response.status === 404) {
+      return { snippet: null, error: 'Snippet not found' }
+    }
+    
+    if (response.status === 403) {
+      return { snippet: null, error: 'Access denied' }
+    }
+    
+    return { snippet: null, error: 'Failed to fetch snippet' }
+  } catch (error) {
+    console.error('Failed to fetch snippet:', error)
+    return { snippet: null, error: 'Network error' }
+  }
+}
 
 export default function SnippetView() {
   const { id } = useParams<{ id: string }>()
+  const { token } = useAuth()
   const [snippet, setSnippet] = useState<Snippet | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!id) return
+    if (!id || !token) return
 
-    const fetchSnippet = async () => {
+    const loadSnippet = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/snippets/${id}`)
-        if (response.ok) {
-          const snippet = await response.json()
-          setSnippet(snippet) // GET /snippets/:id returns snippet directly, not wrapped in data
-        } else if (response.status === 404) {
-          setError('Snippet not found')
+        const { snippet, error: apiError } = await fetchSnippet(id, token)
+        
+        if (apiError) {
+          setError(apiError)
+        } else if (snippet) {
+          setSnippet(snippet)
         } else {
-          setError('Failed to load snippet')
+          setError('Snippet not found')
         }
       } catch (error) {
         console.error('Error fetching snippet:', error)
@@ -32,8 +68,8 @@ export default function SnippetView() {
       }
     }
 
-    fetchSnippet()
-  }, [id])
+    loadSnippet()
+  }, [id, token])
 
   if (loading) {
     return (

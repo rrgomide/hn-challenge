@@ -58,7 +58,7 @@ describe('SnippetService', () => {
   describe('createSnippet', () => {
     it('should create a snippet with id, text, and summary', async () => {
       mockSummarizeText.mockResolvedValue('This is a test snippet')
-      const request = { text: 'This is a test snippet' }
+      const request = { text: 'This is a test snippet', ownerId: 'test-user-id' }
 
       const result = await snippetService.createSnippet(request)
 
@@ -76,7 +76,7 @@ describe('SnippetService', () => {
         'This is a very long text that contains more than ten words and should be summarized by AI'
       const aiSummary = 'AI generated summary of the long text'
       mockSummarizeText.mockResolvedValue(aiSummary)
-      const request = { text: longText }
+      const request = { text: longText, ownerId: 'test-user-id' }
 
       const result = await snippetService.createSnippet(request)
 
@@ -91,8 +91,8 @@ describe('SnippetService', () => {
         .mockResolvedValueOnce('First snippet summary')
         .mockResolvedValueOnce('Second snippet summary')
 
-      const request1 = { text: 'First snippet' }
-      const request2 = { text: 'Second snippet' }
+      const request1 = { text: 'First snippet', ownerId: 'test-user-id' }
+      const request2 = { text: 'Second snippet', ownerId: 'test-user-id' }
 
       const result1 = await snippetService.createSnippet(request1)
       const result2 = await snippetService.createSnippet(request2)
@@ -107,7 +107,7 @@ describe('SnippetService', () => {
   describe('getSnippetById', () => {
     it('should return a snippet when it exists', async () => {
       mockSummarizeText.mockResolvedValue('Test summary')
-      const request = { text: 'Test snippet' }
+      const request = { text: 'Test snippet', ownerId: 'test-user-id' }
 
       const createdSnippet = await snippetService.createSnippet(request)
       const retrievedSnippet = await snippetService.getSnippetById(
@@ -142,8 +142,8 @@ describe('SnippetService', () => {
         .mockResolvedValueOnce('First snippet summary')
         .mockResolvedValueOnce('Second snippet summary')
 
-      const request1 = { text: 'First snippet' }
-      const request2 = { text: 'Second snippet' }
+      const request1 = { text: 'First snippet', ownerId: 'test-user-id' }
+      const request2 = { text: 'Second snippet', ownerId: 'test-user-id' }
 
       await snippetService.createSnippet(request1)
       await snippetService.createSnippet(request2)

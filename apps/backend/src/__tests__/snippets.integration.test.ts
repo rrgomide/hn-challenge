@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeAll } from 'vitest'
 import request from 'supertest'
 import { Express } from 'express'
 import { randomUUID } from 'crypto'
+import jwt from 'jsonwebtoken'
+import { JWTPayload } from '@hn-challenge/shared'
 
 // Mock the AI service module before any imports
 const mockSummarizeText = vi.fn()
@@ -22,6 +24,8 @@ const mockRepository = {
       id,
       text: snippet.text,
       summary: snippet.summary,
+      ownerId: snippet.ownerId || 'test-user-id',
+      isPublic: snippet.isPublic || false,
       createdAt: now,
       updatedAt: now,
     }
@@ -33,6 +37,19 @@ const mockRepository = {
   },
   async findAll() {
     return Array.from(this.snippets.values())
+  },
+  async findByOwnerId(ownerId: string) {
+    return Array.from(this.snippets.values()).filter(s => s.ownerId === ownerId)
+  },
+  async findPublic() {
+    return Array.from(this.snippets.values()).filter(s => s.isPublic)
+  },
+  async findAccessible(userId: string, userRole: string) {
+    const all = Array.from(this.snippets.values())
+    if (userRole === 'admin' || userRole === 'moderator') {
+      return all
+    }
+    return all.filter(s => s.ownerId === userId || s.isPublic)
   },
   async update(id: string, updates: any) {
     const existing = this.snippets.get(id)
@@ -46,28 +63,61 @@ const mockRepository = {
   },
 }
 
+// Mock user repository for new auth system
+const mockUserRepository = {
+  users: new Map(),
+  async create() { return {} },
+  async findByUsername() { return null },
+  async findByEmail() { return null },
+  async findById() { return null },
+  async update() { return null },
+  async delete() { return false },
+}
+
 vi.mock('../repositories/mongodb-snippet-repository.js', () => ({
   MongoDbSnippetRepository: vi.fn(() => mockRepository),
+}))
+
+vi.mock('../repositories/mongodb-user-repository.js', () => ({
+  MongoDbUserRepository: vi.fn(() => mockUserRepository),
 }))
 
 vi.mock('../config/database.js', () => ({
   DatabaseConnection: {
     getInstance: () => ({
-      connect: async () => ({}),
-      getDb: () => ({}),
+      connect: async () => ({
+        collection: () => null // Mock collection method
+      }),
+      getDb: () => ({
+        collection: () => null // Mock collection method
+      }),
     }),
   },
 }))
 
 import { defineControllers } from '../app.js'
 
+const JWT_SECRET = 'development-secret-key-change-in-production'
+
+function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' })
+}
+
 describe('POST /snippets integration tests', () => {
   let app: Express
+  let authToken: string
 
   beforeAll(async () => {
     app = await defineControllers()
     vi.clearAllMocks()
     mockRepository.snippets.clear()
+    
+    // Generate auth token for tests
+    authToken = generateToken({
+      userId: 'test-user-id',
+      username: 'testuser',
+      role: 'user'
+    })
   })
 
   it('should create a snippet and return 200 with correct response format', async () => {
@@ -79,6 +129,7 @@ describe('POST /snippets integration tests', () => {
 
     const response = await request(app)
       .post('/snippets')
+      .set('Authorization', `Bearer ${authToken}`)
       .send(requestBody)
       .expect(200)
 
@@ -97,7 +148,7 @@ describe('POST /snippets integration tests', () => {
 
 
   it('should return 400 when text is missing', async () => {
-    const response = await request(app).post('/snippets').send({}).expect(400)
+    const response = await request(app).post('/snippets').set('Authorization', `Bearer ${authToken}`).send({}).expect(400)
 
     expect(response.body).toEqual({
       error: 'Text field is required and must be a string',
@@ -107,6 +158,7 @@ describe('POST /snippets integration tests', () => {
   it('should return 400 when text is not a string', async () => {
     const response = await request(app)
       .post('/snippets')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({ text: 123 })
       .expect(400)
 
@@ -118,6 +170,7 @@ describe('POST /snippets integration tests', () => {
   it('should return 400 when text is empty string', async () => {
     const response = await request(app)
       .post('/snippets')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({ text: '' })
       .expect(400)
 
@@ -135,11 +188,13 @@ describe('POST /snippets integration tests', () => {
 
     const response1 = await request(app)
       .post('/snippets')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({ text: 'First snippet' })
       .expect(200)
 
     const response2 = await request(app)
       .post('/snippets')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({ text: 'Second snippet' })
       .expect(200)
 
@@ -158,6 +213,7 @@ describe('POST /snippets integration tests', () => {
 
       const response = await request(app)
         .post('/snippets')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ text: htmlText })
         .expect(200)
 
@@ -171,15 +227,23 @@ describe('POST /snippets integration tests', () => {
 
 describe('GET /snippets integration tests', () => {
   let app: Express
+  let authToken: string
 
   beforeAll(async () => {
     app = await defineControllers()
     vi.clearAllMocks()
     mockRepository.snippets.clear()
+    
+    // Generate auth token for tests
+    authToken = generateToken({
+      userId: 'test-user-id',
+      username: 'testuser',
+      role: 'user'
+    })
   })
 
   it('should return empty array when no snippets exist', async () => {
-    const response = await request(app).get('/snippets').expect(200)
+    const response = await request(app).get('/snippets').set('Authorization', `Bearer ${authToken}`).expect(200)
 
     expect(response.body).toEqual({
       data: [],
@@ -200,17 +264,19 @@ describe('GET /snippets integration tests', () => {
     // Create first snippet
     const createResponse1 = await request(app)
       .post('/snippets')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({ text: 'First test snippet' })
       .expect(200)
 
     // Create second snippet
     const createResponse2 = await request(app)
       .post('/snippets')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({ text: 'Second test snippet' })
       .expect(200)
 
     // Get all snippets
-    const getResponse = await request(app).get('/snippets').expect(200)
+    const getResponse = await request(app).get('/snippets').set('Authorization', `Bearer ${authToken}`).expect(200)
 
     expect(getResponse.body.data).toHaveLength(2)
     expect(getResponse.body.total).toBe(2)
@@ -241,11 +307,19 @@ describe('GET /snippets integration tests', () => {
 
 describe('GET /snippets/:id integration tests', () => {
   let app: Express
+  let authToken: string
 
   beforeAll(async () => {
     app = await defineControllers()
     vi.clearAllMocks()
     mockRepository.snippets.clear()
+    
+    // Generate auth token for tests
+    authToken = generateToken({
+      userId: 'test-user-id',
+      username: 'testuser',
+      role: 'user'
+    })
   })
 
   it('should return 404 when snippet does not exist', async () => {
@@ -253,6 +327,7 @@ describe('GET /snippets/:id integration tests', () => {
 
     const response = await request(app)
       .get(`/snippets/${nonExistentId}`)
+      .set('Authorization', `Bearer ${authToken}`)
       .expect(404)
 
     expect(response.body).toEqual({
@@ -268,6 +343,7 @@ describe('GET /snippets/:id integration tests', () => {
     // First create a snippet
     const createResponse = await request(app)
       .post('/snippets')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({ text: 'Test snippet for retrieval' })
       .expect(200)
 
@@ -276,6 +352,7 @@ describe('GET /snippets/:id integration tests', () => {
     // Then retrieve it
     const getResponse = await request(app)
       .get(`/snippets/${snippetId}`)
+      .set('Authorization', `Bearer ${authToken}`)
       .expect(200)
 
     expect(getResponse.body).toEqual(expect.objectContaining({

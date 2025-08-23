@@ -3,6 +3,7 @@ import { Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router'
 
 import './tailwind.css'
 import { ThemeProvider } from './contexts/theme-context'
+import { AuthProvider } from './contexts/auth-context'
 import { ThemeScript } from './components/theme-script'
 
 export const links: LinksFunction = () => [
@@ -35,7 +36,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         >
           Skip to main content
         </a>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
         <ScrollRestoration />
         <Scripts />
       </body>

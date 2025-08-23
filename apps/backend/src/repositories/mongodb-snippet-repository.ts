@@ -1,76 +1,122 @@
-import { Db, Collection, ObjectId } from 'mongodb'
+import { Db, Collection } from 'mongodb'
+import { randomUUID } from 'crypto'
 import { Snippet } from '../models/snippet.js'
 import { SnippetRepository } from './snippet-repository.js'
 
-// MongoDB document type without id (MongoDB generates _id)
-type SnippetDocument = Omit<Snippet, 'id'>
+interface SnippetDocument {
+  _id: string
+  text: string
+  summary: string
+  ownerId: string
+  isPublic: boolean
+  createdAt: Date
+  updatedAt: Date
+}
 
 export class MongoDbSnippetRepository implements SnippetRepository {
   private collection: Collection<SnippetDocument>
 
   constructor(db: Db) {
     this.collection = db.collection<SnippetDocument>('snippets')
+    // Create indexes for performance
+    this.createIndexes()
+  }
+
+  private async createIndexes(): Promise<void> {
+    try {
+      if (this.collection && typeof this.collection.createIndex === 'function') {
+        await this.collection.createIndex({ ownerId: 1 })
+        await this.collection.createIndex({ isPublic: 1 })
+        await this.collection.createIndex({ updatedAt: -1 })
+      }
+    } catch (error) {
+      console.warn('Failed to create snippet indexes:', error)
+    }
+  }
+
+  private documentToSnippet(doc: SnippetDocument): Snippet {
+    return {
+      id: doc._id,
+      text: doc.text,
+      summary: doc.summary,
+      ownerId: doc.ownerId,
+      isPublic: doc.isPublic,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+    }
   }
 
   async create(snippet: Partial<Snippet>): Promise<Snippet> {
+    const id = randomUUID()
     const now = new Date()
     const snippetToInsert: SnippetDocument = {
+      _id: id,
       text: snippet.text!,
       summary: snippet.summary!,
+      ownerId: snippet.ownerId!,
+      isPublic: snippet.isPublic || false,
       createdAt: now,
       updatedAt: now,
     }
 
-    const result = await this.collection.insertOne(snippetToInsert)
-    if (!result.acknowledged) {
-      throw new Error('Failed to create snippet')
-    }
-
-    // Return the created snippet with MongoDB's _id converted to id
-    const createdSnippet = await this.collection.findOne({
-      _id: result.insertedId,
-    })
-    if (!createdSnippet) {
-      throw new Error('Failed to retrieve created snippet')
-    }
-
-    return {
-      id: createdSnippet._id.toString(),
-      text: createdSnippet.text,
-      summary: createdSnippet.summary,
-      createdAt: createdSnippet.createdAt,
-      updatedAt: createdSnippet.updatedAt,
-    }
+    await this.collection.insertOne(snippetToInsert)
+    return this.documentToSnippet(snippetToInsert)
   }
 
   async findById(id: string): Promise<Snippet | null> {
-    const snippet = await this.collection.findOne({ _id: new ObjectId(id) })
-    if (!snippet) {
-      return null
-    }
-
-    return {
-      id: snippet._id.toString(),
-      text: snippet.text,
-      summary: snippet.summary,
-      createdAt: snippet.createdAt,
-      updatedAt: snippet.updatedAt,
-    }
+    const document = await this.collection.findOne({ _id: id })
+    return document ? this.documentToSnippet(document) : null
   }
 
   async findAll(): Promise<Snippet[]> {
-    const snippets = await this.collection
+    const documents = await this.collection
       .find({})
       .sort({ updatedAt: -1 })
       .toArray()
 
-    return snippets.map(snippet => ({
-      id: snippet._id.toString(),
-      text: snippet.text,
-      summary: snippet.summary,
-      createdAt: snippet.createdAt,
-      updatedAt: snippet.updatedAt,
-    }))
+    return documents.map(doc => this.documentToSnippet(doc))
+  }
+
+  async findByOwnerId(ownerId: string): Promise<Snippet[]> {
+    const documents = await this.collection
+      .find({ ownerId })
+      .sort({ updatedAt: -1 })
+      .toArray()
+
+    return documents.map(doc => this.documentToSnippet(doc))
+  }
+
+  async findPublic(): Promise<Snippet[]> {
+    const documents = await this.collection
+      .find({ isPublic: true })
+      .sort({ updatedAt: -1 })
+      .toArray()
+
+    return documents.map(doc => this.documentToSnippet(doc))
+  }
+
+  async findAccessible(userId: string, userRole: 'user' | 'moderator' | 'admin'): Promise<Snippet[]> {
+    let query: any
+
+    if (userRole === 'admin' || userRole === 'moderator') {
+      // Admin and moderator can see all snippets
+      query = {}
+    } else {
+      // Regular users can only see their own snippets and public snippets
+      query = {
+        $or: [
+          { ownerId: userId },
+          { isPublic: true }
+        ]
+      }
+    }
+
+    const documents = await this.collection
+      .find(query)
+      .sort({ updatedAt: -1 })
+      .toArray()
+
+    return documents.map(doc => this.documentToSnippet(doc))
   }
 
   async update(id: string, updates: Partial<Snippet>): Promise<Snippet | null> {
@@ -78,28 +124,19 @@ export class MongoDbSnippetRepository implements SnippetRepository {
       ...updates,
       updatedAt: new Date(),
     }
+    delete (updateData as any).id // Remove id from updates
 
     const result = await this.collection.findOneAndUpdate(
-      { _id: new ObjectId(id) },
+      { _id: id },
       { $set: updateData },
       { returnDocument: 'after' }
     )
 
-    if (!result) {
-      return null
-    }
-
-    return {
-      id: result._id.toString(),
-      text: result.text,
-      summary: result.summary,
-      createdAt: result.createdAt,
-      updatedAt: result.updatedAt,
-    }
+    return result ? this.documentToSnippet(result) : null
   }
 
   async delete(id: string): Promise<boolean> {
-    const result = await this.collection.deleteOne({ _id: new ObjectId(id) })
+    const result = await this.collection.deleteOne({ _id: id })
     return result.deletedCount === 1
   }
 }
