@@ -114,9 +114,13 @@ describe('Config Route', () => {
       })
 
       expect(screen.getByText('Manage user roles and permissions')).toBeInTheDocument()
-      expect(screen.getByText('admin')).toBeInTheDocument()
-      expect(screen.getByText('user')).toBeInTheDocument()
-      expect(screen.getByText('moderator')).toBeInTheDocument()
+      // Check for user data in table
+      const adminUser = screen.getByText(mockAdminUser.username)
+      const regularUser = screen.getByText(mockRegularUser.username)
+      const moderatorUser = screen.getByText('moderator')
+      expect(adminUser).toBeInTheDocument()
+      expect(regularUser).toBeInTheDocument()
+      expect(moderatorUser).toBeInTheDocument()
     })
 
     it('displays users in a table format', async () => {

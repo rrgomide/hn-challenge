@@ -1,6 +1,8 @@
 import { Form, useActionData, redirect, useNavigation, Link, useNavigate } from 'react-router'
 import { Textarea } from '../components/ui/textarea'
 import { Button } from '../components/ui/button'
+import { RadioGroup, RadioItem } from '../components/ui/radio-group'
+import { ScrollArea } from '../components/ui/scroll-area'
 import { Send, Zap, Clock } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { getAuthFromCookies } from '../lib/cookies'
@@ -19,7 +21,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const formData = await request.formData()
   const text = formData.get('text') as string
-  const useStreaming = formData.get('useStreaming') === 'true'
+  const mode = formData.get('mode') as 'batch' | 'stream'
+  const useStreaming = mode === 'stream'
   
   if (!text?.trim()) {
     return { error: 'Text content is required' }
@@ -89,7 +92,7 @@ function KeyboardShortcuts() {
 function SummarizeForm() {
   const formRef = useRef<HTMLFormElement>(null)
   const [text, setText] = useState('')
-  const [useStreaming, setUseStreaming] = useState(false)
+  const [mode, setMode] = useState<'batch' | 'stream'>('batch')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [streamingData, setStreamingData] = useState<{
@@ -105,6 +108,7 @@ function SummarizeForm() {
   const { token } = useAuth()
 
   // Clear the text field when form is submitted successfully (no action data means redirect happened)
+  const useStreaming = mode === 'stream'
   useEffect(() => {
     if (!actionData && !useStreaming) {
       setText('')
@@ -243,42 +247,34 @@ function SummarizeForm() {
           onKeyDown={handleKeyDown}
         />
 
-        <input type="hidden" name="useStreaming" value={useStreaming.toString()} />
+        <input type="hidden" name="mode" value={mode} />
 
         <div id="textarea-help" className="sr-only">
           Enter or paste the text content you want to summarize. This field is
           required.
         </div>
 
-        {/* Streaming Mode Toggle */}
-        <div className="flex items-center justify-center space-x-3 p-3 bg-muted/50 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">Batch</span>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={useStreaming}
-              onChange={(e) => setUseStreaming(e.target.checked)}
-              className="sr-only"
-            />
-            <div className={`w-11 h-6 rounded-full transition-colors ${
-              useStreaming ? 'bg-primary' : 'bg-muted-foreground/30'
-            }`}>
-              <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform transform ${
-                useStreaming ? 'translate-x-5' : 'translate-x-0'
-              } mt-0.5 ml-0.5`} />
-            </div>
-          </label>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm">Stream</span>
-            <Zap className="h-4 w-4 text-yellow-500" />
-          </div>
+        {/* Processing Mode Selection */}
+        <div className="flex flex-col items-center space-y-3">
+          <RadioGroup
+            value={mode}
+            onValueChange={(value) => setMode(value as 'batch' | 'stream')}
+            name="processingMode"
+            className="w-full max-w-xs"
+          >
+            <RadioItem value="batch" className="flex-1">
+              <Clock className="h-4 w-4" />
+              <span>Batch</span>
+            </RadioItem>
+            <RadioItem value="stream" className="flex-1">
+              <Zap className="h-4 w-4" />
+              <span>Stream</span>
+            </RadioItem>
+          </RadioGroup>
         </div>
 
         <p className="text-xs text-center text-muted-foreground">
-          {useStreaming 
+          {mode === 'stream'
             ? "Real-time streaming - see your summary as it's generated" 
             : "Traditional mode - wait for complete summary before redirect"
           }
@@ -310,7 +306,7 @@ function SummarizeForm() {
 
       {/* Streaming Results Display */}
       {streamingData && (
-        <div className="mt-6 p-4 bg-card border border-border rounded-lg space-y-3">
+        <div className="mt-6 p-4 bg-card border border-border rounded-lg space-y-3 max-h-96">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-sm">
               {streamingData.isComplete ? 'Summary Complete' : 'Generating Summary...'}
@@ -324,10 +320,12 @@ function SummarizeForm() {
             )}
           </div>
           
-          <div className="bg-muted p-3 rounded text-sm">
-            {streamingData.summary || 'Waiting for summary...'}
-            {!streamingData.isComplete && <span className="animate-pulse">|</span>}
-          </div>
+          <ScrollArea className="max-h-64">
+            <div className="bg-muted p-3 rounded text-sm">
+              {streamingData.summary || 'Waiting for summary...'}
+              {!streamingData.isComplete && <span className="animate-pulse">|</span>}
+            </div>
+          </ScrollArea>
 
           {streamingData.isComplete && (
             <div className="flex justify-end">

@@ -17,7 +17,27 @@ vi.mock('lucide-react', () => ({
   Send: () => React.createElement('div', { 'data-testid': 'send-icon' }),
   Loader2: () => React.createElement('div', { 'data-testid': 'loader-icon' }),
   Loader: () => React.createElement('div', { 'data-testid': 'loader-icon' }),
+  Trash2: () => React.createElement('div', { 'data-testid': 'trash-icon' }),
+  Clock: () => React.createElement('div', { 'data-testid': 'clock-icon' }),
+  Zap: () => React.createElement('div', { 'data-testid': 'zap-icon' }),
 }))
+
+// Mock window.location.href to prevent jsdom navigation errors
+const mockLocation = {
+  href: 'http://localhost:3000',
+  origin: 'http://localhost:3000',
+  assign: vi.fn(),
+  reload: vi.fn(),
+  replace: vi.fn()
+}
+Object.defineProperty(window, 'location', { value: mockLocation, writable: true })
+
+// Mock HTMLFormElement.prototype.requestSubmit
+HTMLFormElement.prototype.requestSubmit = vi.fn(function(this: HTMLFormElement) {
+  // Trigger form submission event
+  const submitEvent = new Event('submit', { bubbles: true, cancelable: true })
+  this.dispatchEvent(submitEvent)
+})
 
 // Add vi to global scope
 Object.assign(global, { vi })

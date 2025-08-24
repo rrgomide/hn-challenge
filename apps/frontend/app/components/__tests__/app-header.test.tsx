@@ -50,19 +50,7 @@ describe('AppHeader', () => {
     expect(screen.getByText('Snippet Summarizer')).toBeInTheDocument()
   })
 
-  it('renders theme toggle when onToggleTheme is provided', async () => {
-    const mockToggleTheme = vi.fn()
-    render(
-      <AppHeaderWrapper>
-        <AppHeader onToggleTheme={mockToggleTheme} />
-      </AppHeaderWrapper>
-    )
-    
-    await screen.findByText('Snippet Summarizer')
-    expect(screen.getByLabelText('Toggle theme')).toBeInTheDocument()
-  })
-
-  it('does not render theme toggle when onToggleTheme is not provided', async () => {
+  it('always renders theme toggle', async () => {
     render(
       <AppHeaderWrapper>
         <AppHeader />
@@ -70,7 +58,7 @@ describe('AppHeader', () => {
     )
     
     await screen.findByText('Snippet Summarizer')
-    expect(screen.queryByLabelText('Toggle theme')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Toggle theme')).toBeInTheDocument()
   })
 
   it('renders mobile menu button when onToggleSidebar is provided', async () => {
@@ -96,20 +84,20 @@ describe('AppHeader', () => {
     expect(screen.queryByLabelText('Toggle sidebar')).not.toBeInTheDocument()
   })
 
-  it('calls onToggleTheme when theme toggle is clicked', async () => {
+  it('theme toggle is interactive', async () => {
     const user = userEvent.setup()
-    const mockToggleTheme = vi.fn()
     render(
       <AppHeaderWrapper>
-        <AppHeader onToggleTheme={mockToggleTheme} />
+        <AppHeader />
       </AppHeaderWrapper>
     )
     
     await screen.findByText('Snippet Summarizer')
     const themeToggle = screen.getByLabelText('Toggle theme')
-    await user.click(themeToggle)
     
-    expect(mockToggleTheme).toHaveBeenCalledTimes(1)
+    // Just verify it's clickable without errors
+    await user.click(themeToggle)
+    expect(themeToggle).toBeInTheDocument()
   })
 
   it('calls onToggleSidebar when mobile menu button is clicked', async () => {
@@ -128,12 +116,11 @@ describe('AppHeader', () => {
     expect(mockToggleSidebar).toHaveBeenCalledTimes(1)
   })
 
-  it('renders both toggle buttons when both handlers are provided', async () => {
-    const mockToggleTheme = vi.fn()
+  it('renders both theme toggle and sidebar toggle when sidebar handler is provided', async () => {
     const mockToggleSidebar = vi.fn()
     render(
       <AppHeaderWrapper>
-        <AppHeader onToggleTheme={mockToggleTheme} onToggleSidebar={mockToggleSidebar} />
+        <AppHeader onToggleSidebar={mockToggleSidebar} />
       </AppHeaderWrapper>
     )
     

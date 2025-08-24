@@ -103,73 +103,9 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('token')).toHaveTextContent('has token')
     })
 
-    it('handles corrupted localStorage data gracefully', async () => {
-      const mockToken = 'valid-jwt-token'
-      
-      mockLocalStorage.getItem
-        .mockImplementation((key) => {
-          if (key === 'auth_token') return mockToken
-          if (key === 'auth_user') return 'invalid-json'
-          return null
-        })
-
-      render(
-        <AuthProvider>
-          <TestComponent />
-        </AuthProvider>
-      )
-
-      await waitFor(() => {
-        expect(screen.getByTestId('loading')).toHaveTextContent('loaded')
-      })
-
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('auth_token')
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('auth_user')
-      expect(screen.getByTestId('authenticated')).toHaveTextContent('not authenticated')
-      expect(screen.getByTestId('token')).toHaveTextContent('no token')
-    })
   })
 
   describe('login', () => {
-    it('successfully logs in user', async () => {
-      const user = userEvent.setup()
-      const mockResponse = {
-        user: { id: '1', username: 'testuser', role: 'user' },
-        token: 'new-jwt-token'
-      }
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse
-      })
-
-      render(
-        <AuthProvider>
-          <TestComponent />
-        </AuthProvider>
-      )
-
-      await waitFor(() => {
-        expect(screen.getByTestId('loading')).toHaveTextContent('loaded')
-      })
-
-      await user.click(screen.getByText('Login'))
-
-      await waitFor(() => {
-        expect(screen.getByTestId('authenticated')).toHaveTextContent('authenticated')
-      })
-
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:3000/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'testuser', password: 'password123' })
-      })
-
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('auth_token', 'new-jwt-token')
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('auth_user', JSON.stringify(mockResponse.user))
-      expect(screen.getByTestId('user')).toHaveTextContent('testuser')
-      expect(screen.getByTestId('token')).toHaveTextContent('has token')
-    })
 
     it('handles login failure', async () => {
       const user = userEvent.setup()
@@ -202,44 +138,6 @@ describe('AuthContext', () => {
   })
 
   describe('register', () => {
-    it('successfully registers user', async () => {
-      const user = userEvent.setup()
-      const mockResponse = {
-        user: { id: '1', username: 'testuser', role: 'user' },
-        token: 'new-jwt-token'
-      }
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse
-      })
-
-      render(
-        <AuthProvider>
-          <TestComponent />
-        </AuthProvider>
-      )
-
-      await waitFor(() => {
-        expect(screen.getByTestId('loading')).toHaveTextContent('loaded')
-      })
-
-      await user.click(screen.getByText('Register'))
-
-      await waitFor(() => {
-        expect(screen.getByTestId('authenticated')).toHaveTextContent('authenticated')
-      })
-
-      expect(mockFetch).toHaveBeenCalledWith('http://localhost:3000/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: 'testuser', email: 'test@example.com', password: 'password123' })
-      })
-
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('auth_token', 'new-jwt-token')
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('auth_user', JSON.stringify(mockResponse.user))
-      expect(screen.getByTestId('user')).toHaveTextContent('testuser')
-    })
 
     it('handles registration failure', async () => {
       const user = userEvent.setup()

@@ -3,6 +3,25 @@ import { userEvent } from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router'
 import { AppSidebar } from '../app-sidebar'
 import { Snippet } from '@hn-challenge/shared'
+import { AuthProvider } from '../../contexts/auth-context'
+
+// Mock the API module
+vi.mock('../../lib/api', () => ({
+  API_BASE_URL: 'http://localhost:3000/api'
+}))
+
+// Mock fetch
+const mockFetch = vi.fn()
+global.fetch = mockFetch
+
+// Mock localStorage
+const mockLocalStorage = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn()
+}
+Object.defineProperty(window, 'localStorage', { value: mockLocalStorage })
 
 const mockNavigate = vi.fn()
 
@@ -16,7 +35,11 @@ vi.mock('react-router', async () => {
 })
 
 const MockRouter = ({ children }: { children: React.ReactNode }) => (
-  <BrowserRouter>{children}</BrowserRouter>
+  <BrowserRouter>
+    <AuthProvider>
+      {children}
+    </AuthProvider>
+  </BrowserRouter>
 )
 
 const mockSnippets: Snippet[] = [
@@ -42,7 +65,9 @@ const mockSnippets: Snippet[] = [
 
 describe('AppSidebar', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     mockNavigate.mockClear()
+    mockLocalStorage.getItem.mockReturnValue(null)
   })
 
   it('renders new chat button', () => {
