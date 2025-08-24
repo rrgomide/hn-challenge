@@ -20,6 +20,17 @@ export const links: LinksFunction = () => [
   { rel: 'icon', href: '/favicon.ico', type: 'image/x-icon' },
 ]
 
+function ImproveAccessibility() {
+  return (
+    <a
+      href="#main-content"
+      className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-[100] bg-background border border-border rounded px-3 py-2 text-sm font-medium"
+    >
+      Skip to main content
+    </a>
+  )
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -31,16 +42,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <ThemeScript />
       </head>
       <body suppressHydrationWarning>
-        <a 
-          href="#main-content" 
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-[100] bg-background border border-border rounded px-3 py-2 text-sm font-medium"
-        >
-          Skip to main content
-        </a>
+        <ImproveAccessibility />
         <ThemeProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
         <ScrollRestoration />
         <Scripts />
