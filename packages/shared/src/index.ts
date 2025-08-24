@@ -1,7 +1,7 @@
-export * from './types/user'
-export * from './types/snippet'
-export * from './types/api'
+export * from './types/user.js'
+export * from './types/snippet.js'
+export * from './types/api.js'
 
-export * from './utils/validation'
-export * from './utils/sanitization'
-export * from './utils/permissions'
+export * from './utils/validation.js'
+export * from './utils/sanitization.js'
+export * from './utils/permissions.js'
