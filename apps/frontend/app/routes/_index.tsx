@@ -1,50 +1,39 @@
-import { useNavigate } from 'react-router'
+import { Form, useActionData, redirect } from 'react-router'
 import { Textarea } from '../components/ui/textarea'
 import { Button } from '../components/ui/button'
-import { Send, Loader2 as Loader } from 'lucide-react'
-import { useAuth } from '../contexts/auth-context'
-import { useState, useRef } from 'react'
-import { Snippet } from '@hn-challenge/shared'
-import { API_BASE_URL } from '../lib/api'
+import { Send } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { getAuthFromCookies } from '../lib/cookies'
+import { apiClient } from '../lib/api-client'
+import type { ActionFunctionArgs } from 'react-router'
 
-// Client-side function to post a snippet
-async function createSnippet(text: string, token?: string) {
+// Server-side action for snippet creation
+export async function action({ request }: ActionFunctionArgs) {
+  const cookieHeader = request.headers.get('Cookie')
+  const { token } = getAuthFromCookies(cookieHeader)
+  
+  if (!token) {
+    throw redirect('/auth')
+  }
+
+  const formData = await request.formData()
+  const text = formData.get('text') as string
+  
+  if (!text?.trim()) {
+    return { error: 'Text content is required' }
+  }
+
   try {
-    if (!text || !text.trim()) {
-      throw new Error('Text content is required')
-    }
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    }
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-
-    const response = await fetch(`${API_BASE_URL}/snippets`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ text: text.trim() }),
-    })
-
-    if (!response.ok) {
-      console.error('📛 Failed to create snippet:', { response })
-      throw new Error('Failed to create snippet')
-    }
-
-    const newSnippet: Snippet = await response.json()
-    return { newSnippet, error: null }
+    const snippet = await apiClient.post('/snippets', { text: text.trim() }, token)
+    return redirect(`/snippets/${snippet.id}`)
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error'
-
-    return {
-      newSnippet: null,
-      error: `Error creating snippet: ${errorMessage}`,
+    console.error('Action error creating snippet:', error)
+    return { 
+      error: error instanceof Error ? error.message : 'Failed to create snippet. Please try again.'
     }
   }
 }
+
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -86,76 +75,42 @@ function KeyboardShortcuts() {
 }
 
 function SummarizeForm() {
-  const navigate = useNavigate()
-  const { token } = useAuth()
   const formRef = useRef<HTMLFormElement>(null)
   const [text, setText] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const actionData = useActionData() as { error?: string } | undefined
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!text.trim()) {
-      setError('Text content is required')
-      return
+  // Clear the text field when form is submitted successfully (no action data means redirect happened)
+  useEffect(() => {
+    if (!actionData) {
+      setText('')
     }
-
-    if (!token) {
-      setError('Authentication required')
-      return
-    }
-
-    setIsSubmitting(true)
-    setError('')
-
-    try {
-      const { newSnippet, error: apiError } = await createSnippet(text.trim(), token)
-      
-      if (apiError) {
-        setError(apiError)
-        return
-      }
-
-      if (!newSnippet) {
-        setError('Failed to create snippet')
-        return
-      }
-
-      // Success - navigate to the new snippet
-      navigate(`/snippets/${newSnippet.id}`)
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  }, [actionData])
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
       event.preventDefault()
-      handleSubmit(event as any)
+      formRef.current?.requestSubmit()
     }
   }
 
-  const shouldRenderError = error && !isSubmitting
+  const error = actionData?.error
+  const shouldRenderError = !!error
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+    <Form ref={formRef} method="post" className="space-y-4">
       <Textarea
         autoFocus
         required
+        name="text"
         value={text}
         onChange={(e) => {
           setText(e.target.value)
-          if (error) setError('') // Clear error when user types
         }}
         placeholder="Paste your text here to get a summary..."
         className="min-h-[150px] sm:min-h-[200px] resize-none touch-manipulation"
         aria-label="Text content for summarization"
         aria-describedby="textarea-help"
         onKeyDown={handleKeyDown}
-        disabled={isSubmitting}
       />
 
       <div id="textarea-help" className="sr-only">
@@ -174,18 +129,14 @@ function SummarizeForm() {
 
         <Button
           type="submit"
-          disabled={isSubmitting || !text.trim()}
+          disabled={!text.trim()}
           className="gap-2 w-full sm:w-48"
         >
-          {isSubmitting ? (
-            <Loader className="w-4 h-4 animate-spin" />
-          ) : (
-            <Send className="w-4 h-4" />
-          )}
-          {isSubmitting ? 'Summarizing...' : 'Summarize'}
+          <Send className="w-4 h-4" />
+          Summarize
         </Button>
       </div>
-    </form>
+    </Form>
   )
 }
 

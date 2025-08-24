@@ -188,7 +188,7 @@ describe('Role-based access control integration tests', () => {
         .post('/snippets')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ text: 'User snippet', isPublic: true })
-        .expect(200)
+        .expect(201)
 
       expect(response.body).toHaveProperty('id')
       expect(response.body.text).toBe('User snippet')
@@ -210,7 +210,7 @@ describe('Role-based access control integration tests', () => {
         .post('/snippets')
         .set('Authorization', `Bearer ${userToken}`)
         .send({ text: 'Private snippet' })
-        .expect(200)
+        .expect(201)
 
       expect(response.body.isPublic).toBe(false)
       expect(response.body.ownerId).toBe(userId)

@@ -3,9 +3,13 @@ import {
   useContext,
   useEffect,
   useState,
+  useCallback,
   type ReactNode
 } from 'react'
 import { User, AuthResponse } from '@hn-challenge/shared'
+import { authService } from '../services/auth-service'
+import { LocalStorageManager } from '../lib/storage'
+import { CookieManager } from '../lib/cookies'
 
 interface AuthContextType {
   user: User | null
@@ -29,97 +33,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Load auth data from localStorage on mount
   useEffect(() => {
-    try {
-      const savedToken = localStorage.getItem(TOKEN_KEY)
-      const savedUser = localStorage.getItem(USER_KEY)
-      
-      if (savedToken && savedUser) {
-        setToken(savedToken)
-        setUser(JSON.parse(savedUser))
+    const loadAuthData = () => {
+      try {
+        const savedToken = LocalStorageManager.getItem<string>(TOKEN_KEY)
+        const savedUser = LocalStorageManager.getItem<User>(USER_KEY)
+        
+        if (savedToken && savedUser) {
+          setToken(savedToken)
+          setUser(savedUser)
+        }
+      } catch (error) {
+        console.error('Failed to load auth data from localStorage:', error)
+        // Clear corrupted data
+        LocalStorageManager.removeItems([TOKEN_KEY, USER_KEY])
+      } finally {
+        setIsLoading(false)
       }
-    } catch (error) {
-      console.error('Failed to load auth data from localStorage:', error)
-      // Clear corrupted data
-      localStorage.removeItem(TOKEN_KEY)
-      localStorage.removeItem(USER_KEY)
-    } finally {
-      setIsLoading(false)
     }
+
+    loadAuthData()
   }, [])
 
-  const saveAuthData = (authResponse: AuthResponse) => {
+  const saveAuthData = useCallback((authResponse: AuthResponse) => {
     setToken(authResponse.token)
     setUser(authResponse.user)
-    localStorage.setItem(TOKEN_KEY, authResponse.token)
-    localStorage.setItem(USER_KEY, JSON.stringify(authResponse.user))
-  }
+    // Save to localStorage for client-side access
+    LocalStorageManager.setItem(TOKEN_KEY, authResponse.token)
+    LocalStorageManager.setItem(USER_KEY, authResponse.user)
+    // Save to cookies for server-side access
+    CookieManager.set(TOKEN_KEY, authResponse.token, { maxAge: 7 * 24 * 60 * 60 }) // 7 days
+    CookieManager.set(USER_KEY, JSON.stringify(authResponse.user), { maxAge: 7 * 24 * 60 * 60 }) // 7 days
+  }, [])
 
-  const clearAuthData = () => {
+  const clearAuthData = useCallback(() => {
     setToken(null)
     setUser(null)
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
-  }
+    LocalStorageManager.removeItems([TOKEN_KEY, USER_KEY])
+    // Clear cookies as well
+    CookieManager.remove(TOKEN_KEY)
+    CookieManager.remove(USER_KEY)
+  }, [])
 
-  const login = async (username: string, password: string) => {
-    try {
-      const API_BASE_URL = typeof window !== 'undefined' 
-        ? ((import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000')
-        : (process.env.NODE_ENV === 'production' ? 'http://backend:3000' : 'http://localhost:3000')
-
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Login failed' }))
-        return { success: false, error: errorData.error || 'Login failed' }
-      }
-
-      const authResponse: AuthResponse = await response.json()
-      saveAuthData(authResponse)
-      return { success: true }
-    } catch (error) {
-      console.error('Login error:', error)
-      return { success: false, error: 'Network error. Please try again.' }
+  const login = useCallback(async (username: string, password: string) => {
+    const result = await authService.login(username, password)
+    
+    if (result.success && result.data) {
+      saveAuthData(result.data)
     }
-  }
+    
+    return result
+  }, [saveAuthData])
 
-  const register = async (username: string, email: string, password: string, role?: string) => {
-    try {
-      const API_BASE_URL = typeof window !== 'undefined' 
-        ? ((import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:3000')
-        : (process.env.NODE_ENV === 'production' ? 'http://backend:3000' : 'http://localhost:3000')
-
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, email, password, role }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Registration failed' }))
-        return { success: false, error: errorData.error || 'Registration failed' }
-      }
-
-      const authResponse: AuthResponse = await response.json()
-      saveAuthData(authResponse)
-      return { success: true }
-    } catch (error) {
-      console.error('Registration error:', error)
-      return { success: false, error: 'Network error. Please try again.' }
+  const register = useCallback(async (
+    username: string, 
+    email: string, 
+    password: string, 
+    role?: string
+  ) => {
+    const result = await authService.register(username, email, password, role)
+    
+    if (result.success && result.data) {
+      saveAuthData(result.data)
     }
-  }
+    
+    return result
+  }, [saveAuthData])
 
-  const logout = () => {
+  const logout = useCallback(() => {
     clearAuthData()
-  }
+  }, [clearAuthData])
 
   const value: AuthContextType = {
     user,

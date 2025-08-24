@@ -203,7 +203,7 @@ function ConfigContent() {
             </tr>
           </thead>
           <tbody>
-            {users && users.map((user) => (
+            {users && users.filter(user => user && user.id).map((user) => (
               <UserRow 
                 key={user.id} 
                 user={user} 

@@ -2,6 +2,7 @@ import { google } from '@ai-sdk/google'
 import { openai } from '@ai-sdk/openai'
 import { sanitizeJsonString } from '@hn-challenge/shared'
 import { generateText } from 'ai'
+import { config } from '../config/environment.js'
 
 export interface AIService {
   summarizeText(text: string): Promise<string>
@@ -75,16 +76,13 @@ export class OpenAIService implements AIService {
 }
 
 export function createAIService(): AIService {
-  const googleApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-  const openaiApiKey = process.env.OPENAI_API_KEY
-
   // Prioritize Google AI first
-  if (googleApiKey) {
-    return new GoogleAIService(googleApiKey)
+  if (config.googleAiApiKey) {
+    return new GoogleAIService(config.googleAiApiKey)
   }
 
-  if (openaiApiKey) {
-    return new OpenAIService(openaiApiKey)
+  if (config.openaiApiKey) {
+    return new OpenAIService(config.openaiApiKey)
   }
 
   throw new Error(

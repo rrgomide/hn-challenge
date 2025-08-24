@@ -2,6 +2,7 @@
 import '@dotenvx/dotenvx/config'
 
 import { MongoClient, Db } from 'mongodb'
+import { config } from './environment.js'
 
 export class DatabaseConnection {
   private static instance: DatabaseConnection
@@ -22,22 +23,12 @@ export class DatabaseConnection {
       return this.db
     }
 
-    const isDevelopment = process.env.NODE_ENV === 'development'
-
-    const connectionString = isDevelopment
-      ? process.env.MONGODB_URI_DEV
-      : process.env.MONGODB_URI_PROD
-
     try {
-      if (!connectionString) {
-        throw new Error('MONGODB_URI is not set')
-      }
-
-      this.client = new MongoClient(connectionString)
+      this.client = new MongoClient(config.mongoUri)
       await this.client.connect()
       this.db = this.client.db('hn_challenge')
 
-      console.log('Connected to MongoDB successfully')
+      console.log(`Connected to MongoDB successfully (${config.isDevelopment ? 'development' : 'production'})`)
       return this.db
     } catch (error) {
       console.error('Failed to connect to MongoDB:', error)

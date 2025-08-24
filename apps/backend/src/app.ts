@@ -7,6 +7,7 @@ import { MongoDbSnippetRepository } from './repositories/mongodb-snippet-reposit
 import { MongoDbUserRepository } from './repositories/mongodb-user-repository.js'
 import { SnippetService } from './services/snippet-service.js'
 import { authMiddleware, requireRole } from './middleware/auth.js'
+import { errorHandler } from './middleware/error-handler.js'
 
 export async function defineControllers(): Promise<Express> {
   const app = express()
@@ -48,43 +49,39 @@ export async function defineControllers(): Promise<Express> {
   const configController = new ConfigController(userRepository)
 
   // Authentication routes (no auth required)
-  app.post('/auth/register', (request, response) =>
-    authController.register(request, response)
-  )
-  app.post('/auth/login', (request, response) =>
-    authController.login(request, response)
-  )
+  app.post('/auth/register', authController.register)
+  app.post('/auth/login', authController.login)
 
   // Protected snippet routes (auth required)
   app.post(
     '/snippets',
     authMiddleware,
     requireRole(['user', 'moderator', 'admin']),
-    (request, response) => snippetController.createSnippet(request, response)
+    snippetController.createSnippet
   )
   app.get(
     '/snippets',
     authMiddleware,
     requireRole(['user', 'moderator', 'admin']),
-    (request, response) => snippetController.getAllSnippets(request, response)
+    snippetController.getAllSnippets
   )
   app.get(
     '/snippets/:id',
     authMiddleware,
     requireRole(['user', 'moderator', 'admin']),
-    (request, response) => snippetController.getSnippet(request, response)
+    snippetController.getSnippet
   )
   app.put(
     '/snippets/:id',
     authMiddleware,
     requireRole(['user', 'moderator', 'admin']),
-    (request, response) => snippetController.updateSnippet(request, response)
+    snippetController.updateSnippet
   )
   app.delete(
     '/snippets/:id',
     authMiddleware,
     requireRole(['user', 'moderator', 'admin']),
-    (request, response) => snippetController.deleteSnippet(request, response)
+    snippetController.deleteSnippet
   )
 
   // Admin-only config routes
@@ -92,14 +89,17 @@ export async function defineControllers(): Promise<Express> {
     '/config',
     authMiddleware,
     requireRole(['admin']),
-    (request, response) => configController.getAllUsers(request, response)
+    configController.getAllUsers
   )
   app.patch(
     '/config',
     authMiddleware,
     requireRole(['admin']),
-    (request, response) => configController.updateUserRole(request, response)
+    configController.updateUserRole
   )
+
+  // Error handling middleware (must be last)
+  app.use(errorHandler)
 
   return app
 }

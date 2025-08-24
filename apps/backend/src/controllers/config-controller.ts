@@ -1,58 +1,52 @@
-import { Request, Response } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import { UserRepository } from '../repositories/user-repository.js'
 import { UserRole } from '@hn-challenge/shared'
+import { ValidationError, NotFoundError } from '../utils/errors.js'
+import { validateString, validateUUID } from '../utils/validators.js'
 
 export class ConfigController {
-  private userRepository: UserRepository
+  constructor(private readonly userRepository: UserRepository) {}
 
-  constructor(userRepository: UserRepository) {
-    this.userRepository = userRepository
-  }
-
-  async getAllUsers(req: Request, res: Response): Promise<void> {
+  getAllUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const users = await this.userRepository.findAll()
       res.json({ users })
     } catch (error) {
-      console.error('Get all users error:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      next(error)
     }
   }
 
-  async updateUserRole(req: Request, res: Response): Promise<void> {
+  updateUserRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId, role } = req.body
 
       // Validation
       if (!userId) {
-        res.status(400).json({ error: 'User ID is required' })
-        return
+        throw new ValidationError('User ID is required')
       }
-
       if (!role) {
-        res.status(400).json({ error: 'Role is required' })
-        return
+        throw new ValidationError('Role is required')
       }
+      
+      validateUUID(userId, 'userId')
+      validateString(role, 'role')
 
       // Validate role value
       const validRoles: UserRole[] = ['user', 'moderator', 'admin']
       if (!validRoles.includes(role)) {
-        res.status(400).json({ error: 'Invalid role. Must be one of: user, moderator, admin' })
-        return
+        throw new ValidationError('Invalid role. Must be one of: user, moderator, admin')
       }
 
       // Check if user exists
       const existingUser = await this.userRepository.findById(userId)
       if (!existingUser) {
-        res.status(404).json({ error: 'User not found' })
-        return
+        throw new NotFoundError('User not found')
       }
 
       // Update user role
       const updatedUser = await this.userRepository.update(userId, { role })
       if (!updatedUser) {
-        res.status(500).json({ error: 'Failed to update user role' })
-        return
+        throw new Error('Failed to update user role')
       }
 
       res.json({ 
@@ -60,8 +54,7 @@ export class ConfigController {
         user: updatedUser 
       })
     } catch (error) {
-      console.error('Update user role error:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      next(error)
     }
   }
 }

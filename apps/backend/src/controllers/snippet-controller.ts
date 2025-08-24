@@ -1,198 +1,134 @@
-import { Request, Response } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import { SnippetService } from '../services/snippet-service.js'
-import { CreateSnippetRequest, SnippetsResponse } from '../models/snippet'
+import { CreateSnippetRequest } from '../models/snippet'
+import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors.js'
+import { validateString, validateUUID, validateBoolean, sanitizeText } from '../utils/validators.js'
 
 export class SnippetController {
-  private snippetService: SnippetService
+  constructor(private readonly snippetService: SnippetService) {}
 
-  constructor(snippetService: SnippetService) {
-    this.snippetService = snippetService
-  }
-
-  private sanitizeText(text: string): string {
-    // First, remove script tags and their content completely
-    let sanitized = text.replace(
-      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-      ''
-    )
-
-    // Remove other HTML tags but keep their content
-    sanitized = sanitized.replace(/<[^>]*>/g, '')
-
-    // Only normalize whitespace that appears to be from HTML (multiple spaces/tabs)
-    // but preserve intentional newlines and single spaces
-    sanitized = sanitized.replace(/[ \t]+/g, ' ').trim()
-
-    return sanitized
-  }
-
-  async createSnippet(request: Request, response: Response): Promise<void> {
+  createSnippet = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
     try {
       const { text, isPublic }: CreateSnippetRequest = request.body
       const user = request.user!
 
-      if (!text || typeof text !== 'string') {
-        response
-          .status(400)
-          .json({ error: 'Text field is required and must be a string' })
-        return
+      // Custom validation for text to match test expectations  
+      if (!text || typeof text !== 'string' || text.trim().length === 0) {
+        throw new ValidationError('Text field is required and must be a string')
       }
-
-      if (text.trim() === '') {
-        response
-          .status(400)
-          .json({ error: 'Text field is required and must be a string' })
-        return
-      }
-
-      // Sanitize the text input to remove HTML tags and normalize whitespace
-      const sanitizedText = this.sanitizeText(text)
+      
+      const sanitizedText = sanitizeText(text)
+      const publicFlag = validateBoolean(isPublic, 'isPublic')
 
       const snippet = await this.snippetService.createSnippet({
         text: sanitizedText,
-        isPublic: isPublic || false,
+        isPublic: publicFlag,
         ownerId: user.userId
       })
-      response.json(snippet)
+      
+      response.status(201).json(snippet)
     } catch (error) {
-      console.error('Error creating snippet:', error)
-      response.status(500).json({ error: 'Internal server error' })
+      next(error)
     }
   }
 
-  async getSnippet(req: Request, res: Response): Promise<void> {
+  getSnippet = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
     try {
-      const { id } = req.params
-      const user = req.user!
+      const { id } = request.params
+      const user = request.user!
 
-      if (!id || id.trim() === '') {
-        res.status(400).json({ error: 'Snippet ID is required' })
-        return
-      }
+      validateUUID(id, 'snippet ID')
 
       const snippet = await this.snippetService.getSnippetById(id)
-
       if (!snippet) {
-        res.status(404).json({ error: 'Snippet not found' })
-        return
+        throw new NotFoundError('Snippet not found')
       }
 
       // Check access permissions
-      const hasAccess = 
-        snippet.ownerId === user.userId || 
-        snippet.isPublic || 
-        user.role === 'admin' || 
-        user.role === 'moderator'
-
+      const hasAccess = await this.snippetService.hasReadAccess(snippet, user.userId, user.role)
       if (!hasAccess) {
-        res.status(403).json({ error: 'Access denied' })
-        return
+        throw new ForbiddenError('Access denied')
       }
 
-      res.json(snippet)
+      response.json(snippet)
     } catch (error) {
-      console.error('Error retrieving snippet:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      next(error)
     }
   }
 
-  async getAllSnippets(request: Request, response: Response): Promise<void> {
+  getAllSnippets = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
     try {
       const user = request.user!
-      const snippets = await this.snippetService.getAccessibleSnippets(user.userId, user.role)
-      response.json(snippets)
+      const snippetsResponse = await this.snippetService.getAccessibleSnippets(user.userId, user.role)
+      
+      // Service already returns paginated response
+      response.json(snippetsResponse)
     } catch (error) {
-      console.error('Error retrieving all snippets:', error)
-      response.status(500).json({ error: 'Internal server error' })
+      next(error)
     }
   }
 
-  async updateSnippet(req: Request, res: Response): Promise<void> {
+  updateSnippet = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
     try {
-      const { id } = req.params
-      const { text, isPublic } = req.body
-      const user = req.user!
+      const { id } = request.params
+      const { text, isPublic } = request.body
+      const user = request.user!
 
-      if (!id || id.trim() === '') {
-        res.status(400).json({ error: 'Snippet ID is required' })
-        return
-      }
+      validateUUID(id, 'snippet ID')
 
       const snippet = await this.snippetService.getSnippetById(id)
-
       if (!snippet) {
-        res.status(404).json({ error: 'Snippet not found' })
-        return
+        throw new NotFoundError('Snippet not found')
       }
 
       // Check modification permissions
-      const canModify = 
-        snippet.ownerId === user.userId || 
-        user.role === 'admin' || 
-        user.role === 'moderator'
-
+      const canModify = await this.snippetService.hasWriteAccess(snippet, user.userId, user.role)
       if (!canModify) {
-        res.status(403).json({ error: 'Access denied' })
-        return
+        throw new ForbiddenError('Access denied')
       }
 
       const updates: any = {}
       if (text !== undefined) {
-        if (!text || typeof text !== 'string' || text.trim() === '') {
-          res.status(400).json({ error: 'Text must be a non-empty string' })
-          return
-        }
-        updates.text = this.sanitizeText(text)
+        validateString(text, 'text')
+        updates.text = sanitizeText(text)
       }
       if (isPublic !== undefined) {
-        updates.isPublic = Boolean(isPublic)
+        updates.isPublic = validateBoolean(isPublic, 'isPublic')
       }
 
       const updatedSnippet = await this.snippetService.updateSnippet(id, updates)
-      res.json(updatedSnippet)
+      response.json(updatedSnippet)
     } catch (error) {
-      console.error('Error updating snippet:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      next(error)
     }
   }
 
-  async deleteSnippet(req: Request, res: Response): Promise<void> {
+  deleteSnippet = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
     try {
-      const { id } = req.params
-      const user = req.user!
+      const { id } = request.params
+      const user = request.user!
 
-      if (!id || id.trim() === '') {
-        res.status(400).json({ error: 'Snippet ID is required' })
-        return
-      }
+      validateUUID(id, 'snippet ID')
 
       const snippet = await this.snippetService.getSnippetById(id)
-
       if (!snippet) {
-        res.status(404).json({ error: 'Snippet not found' })
-        return
+        throw new NotFoundError('Snippet not found')
       }
 
       // Check deletion permissions
-      const canDelete = 
-        snippet.ownerId === user.userId || 
-        user.role === 'admin' || 
-        user.role === 'moderator'
-
+      const canDelete = await this.snippetService.hasWriteAccess(snippet, user.userId, user.role)
       if (!canDelete) {
-        res.status(403).json({ error: 'Access denied' })
-        return
+        throw new ForbiddenError('Access denied')
       }
 
       const deleted = await this.snippetService.deleteSnippet(id)
       if (deleted) {
-        res.json({ message: 'Snippet deleted successfully' })
+        response.json({ message: 'Snippet deleted successfully' })
       } else {
-        res.status(500).json({ error: 'Failed to delete snippet' })
+        throw new Error('Failed to delete snippet')
       }
     } catch (error) {
-      console.error('Error deleting snippet:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      next(error)
     }
   }
 }

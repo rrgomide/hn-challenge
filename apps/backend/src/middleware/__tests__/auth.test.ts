@@ -29,21 +29,21 @@ describe('authMiddleware', () => {
   })
 
   it('should return 401 when no authorization header is provided', async () => {
-    await authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
+    authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
     
-    expect(mockStatus).toHaveBeenCalledWith(401)
-    expect(mockJson).toHaveBeenCalledWith({ error: 'Access token required' })
-    expect(mockNext).not.toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
+    expect(mockStatus).not.toHaveBeenCalled()
   })
 
   it('should return 401 when authorization header is malformed (no Bearer prefix)', async () => {
     mockRequest.headers = { authorization: 'invalid-token' }
     
-    await authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
+    authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
     
-    expect(mockStatus).toHaveBeenCalledWith(401)
-    expect(mockJson).toHaveBeenCalledWith({ error: 'Invalid authorization header format' })
-    expect(mockNext).not.toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
+    expect(mockStatus).not.toHaveBeenCalled()
   })
 
   it('should return 401 when JWT token is invalid', async () => {
@@ -52,11 +52,11 @@ describe('authMiddleware', () => {
       throw new Error('Invalid token')
     })
     
-    await authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
+    authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
     
-    expect(mockStatus).toHaveBeenCalledWith(401)
-    expect(mockJson).toHaveBeenCalledWith({ error: 'Invalid or expired token' })
-    expect(mockNext).not.toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
+    expect(mockStatus).not.toHaveBeenCalled()
   })
 
   it('should add user to request and call next() when JWT token is valid', async () => {
@@ -71,11 +71,12 @@ describe('authMiddleware', () => {
     mockRequest.headers = { authorization: 'Bearer valid-token' }
     vi.mocked(jwt.verify).mockReturnValue(mockPayload as any)
     
-    await authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
+    authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
     
     expect(jwt.verify).toHaveBeenCalledWith('valid-token', expect.any(String))
     expect((mockRequest as any).user).toEqual(mockPayload)
     expect(mockNext).toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledWith()
     expect(mockStatus).not.toHaveBeenCalled()
   })
 
@@ -87,11 +88,11 @@ describe('authMiddleware', () => {
       throw expiredError
     })
     
-    await authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
+    authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
     
-    expect(mockStatus).toHaveBeenCalledWith(401)
-    expect(mockJson).toHaveBeenCalledWith({ error: 'Token expired' })
-    expect(mockNext).not.toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
+    expect(mockStatus).not.toHaveBeenCalled()
   })
 
   it('should handle JWT malformed token error', async () => {
@@ -102,11 +103,11 @@ describe('authMiddleware', () => {
       throw malformedError
     })
     
-    await authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
+    authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
     
-    expect(mockStatus).toHaveBeenCalledWith(401)
-    expect(mockJson).toHaveBeenCalledWith({ error: 'Invalid token format' })
-    expect(mockNext).not.toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
+    expect(mockStatus).not.toHaveBeenCalled()
   })
 })
 
@@ -134,9 +135,9 @@ describe('requireRole', () => {
     
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
     
-    expect(mockStatus).toHaveBeenCalledWith(401)
-    expect(mockJson).toHaveBeenCalledWith({ error: 'Authentication required' })
-    expect(mockNext).not.toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
+    expect(mockStatus).not.toHaveBeenCalled()
   })
 
   it('should return 403 when user role is not in allowed roles', () => {
@@ -153,9 +154,9 @@ describe('requireRole', () => {
     
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
     
-    expect(mockStatus).toHaveBeenCalledWith(403)
-    expect(mockJson).toHaveBeenCalledWith({ error: 'Insufficient permissions' })
-    expect(mockNext).not.toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
+    expect(mockStatus).not.toHaveBeenCalled()
   })
 
   it('should call next() when user has required role', () => {
@@ -173,6 +174,7 @@ describe('requireRole', () => {
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
     
     expect(mockNext).toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledWith()
     expect(mockStatus).not.toHaveBeenCalled()
   })
 
@@ -191,6 +193,7 @@ describe('requireRole', () => {
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
     
     expect(mockNext).toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledWith()
     expect(mockStatus).not.toHaveBeenCalled()
   })
 
@@ -209,6 +212,7 @@ describe('requireRole', () => {
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
     
     expect(mockNext).toHaveBeenCalled()
+    expect(mockNext).toHaveBeenCalledWith()
     expect(mockStatus).not.toHaveBeenCalled()
   })
 })

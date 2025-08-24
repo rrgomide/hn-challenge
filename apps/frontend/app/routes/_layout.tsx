@@ -1,19 +1,53 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Outlet, useLoaderData, useNavigate, useLocation } from 'react-router'
+import { Outlet, useLoaderData, useNavigate, useLocation, redirect } from 'react-router'
 import { AppSidebar } from '../components/app-sidebar'
 import { AppHeader } from '../components/app-header'
 import { useTheme } from '../contexts/theme-context'
 import { useAuth } from '../contexts/auth-context'
 import { Snippet, SnippetsResponse } from '@hn-challenge/shared'
 import { API_BASE_URL } from '../lib/api'
+import { getAuthFromCookies } from '../lib/cookies'
+import { apiClient } from '../lib/api-client'
+import type { LoaderFunctionArgs } from 'react-router'
 
 interface LoaderData {
   snippets: Snippet[]
+  isAuthenticated: boolean
+  user: any | null
 }
 
-export async function loader(): Promise<LoaderData> {
-  // Authentication is handled client-side, so we'll load snippets after authentication
-  return { snippets: [] }
+export async function loader({ request }: LoaderFunctionArgs): Promise<LoaderData> {
+  const cookieHeader = request.headers.get('Cookie')
+  const { token, user } = getAuthFromCookies(cookieHeader)
+  
+  // If no auth token, redirect to auth page (unless already on auth page)
+  const url = new URL(request.url)
+  if (!token && url.pathname !== '/auth') {
+    throw redirect('/auth')
+  }
+  
+  // If no token, return empty state
+  if (!token) {
+    return { snippets: [], isAuthenticated: false, user: null }
+  }
+
+  try {
+    // Fetch snippets server-side if authenticated
+    const result: SnippetsResponse = await apiClient.get('/snippets', token)
+    return { 
+      snippets: result.data || [], 
+      isAuthenticated: true, 
+      user 
+    }
+  } catch (error) {
+    console.error('Failed to fetch snippets in loader:', error)
+    // If token is invalid, redirect to auth
+    if (error instanceof Error && error.message.includes('401')) {
+      throw redirect('/auth')
+    }
+    // Return empty state on other errors
+    return { snippets: [], isAuthenticated: !!token, user }
+  }
 }
 
 // Client-side function to fetch snippets
@@ -95,15 +129,17 @@ function AppBodyWrapper({ children }: { children: React.ReactNode }) {
 }
 
 export default function Layout() {
-  const { snippets: initialSnippets } = useLoaderData<typeof loader>()
+  const { snippets: loaderSnippets, isAuthenticated: loaderAuthenticated } = useLoaderData<typeof loader>()
   const [mounted, setMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [snippets, setSnippets] = useState<Snippet[]>(initialSnippets)
+  const [snippets, setSnippets] = useState<Snippet[]>(loaderSnippets)
   const { toggleTheme } = useTheme()
-  const { isAuthenticated, isLoading, token } = useAuth()
-  const navigate = useNavigate()
+  const { isAuthenticated: contextAuthenticated, isLoading, token } = useAuth()
   const location = useLocation()
   const sidebarRef = useRef<HTMLDivElement>(null)
+  
+  // Use loader auth state as primary, fallback to context
+  const isAuthenticated = loaderAuthenticated || contextAuthenticated
   
   // Check if we should hide the sidebar (e.g., on config page)
   const shouldHideSidebar = location.pathname === '/config'
@@ -112,16 +148,14 @@ export default function Layout() {
     setMounted(true)
   }, [])
 
-  // Redirect to auth if not authenticated
+  // Update snippets when loader data changes
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate('/auth', { replace: true })
-    }
-  }, [isAuthenticated, isLoading, navigate])
+    setSnippets(loaderSnippets)
+  }, [loaderSnippets])
 
-  // Load snippets when authenticated
+  // Client-side snippet refresh when auth context changes
   useEffect(() => {
-    if (isAuthenticated && token) {
+    if (contextAuthenticated && token && loaderSnippets.length === 0) {
       fetchSnippets(token)
         .then(({ snippets }) => {
           setSnippets(snippets)
@@ -130,7 +164,7 @@ export default function Layout() {
           console.error('Failed to load snippets:', error)
         })
     }
-  }, [isAuthenticated, token])
+  }, [contextAuthenticated, token, loaderSnippets.length])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -153,8 +187,8 @@ export default function Layout() {
     setSidebarOpen(value => !value)
   }, [])
 
-  // Show loading state while checking authentication
-  if (isLoading) {
+  // Show loading state only for client-side transitions while context is loading
+  if (isLoading && !loaderAuthenticated) {
     return (
       <Wrapper>
         <div className="flex items-center justify-center h-full">
@@ -167,10 +201,7 @@ export default function Layout() {
     )
   }
 
-  // Don't render if not authenticated (will redirect)
-  if (!isAuthenticated) {
-    return null
-  }
+  // Server-side loader handles auth redirects, so no need for client-side check
 
   return (
     <Wrapper>

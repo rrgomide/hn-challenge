@@ -1,7 +1,21 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useLoaderData, redirect } from 'react-router'
 import { AuthForms } from '../components/auth-forms'
 import { useAuth } from '../contexts/auth-context'
+import { getAuthFromCookies } from '../lib/cookies'
+import type { LoaderFunctionArgs } from 'react-router'
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  const cookieHeader = request.headers.get('Cookie')
+  const { token } = getAuthFromCookies(cookieHeader)
+  
+  // If already authenticated, redirect to home
+  if (token) {
+    throw redirect('/')
+  }
+  
+  return {}
+}
 
 export function meta() {
   return [
@@ -21,38 +35,14 @@ function AuthPageWrapper({ children }: { children: React.ReactNode }) {
 }
 
 export default function AuthPage() {
-  const { isAuthenticated, isLoading } = useAuth()
   const navigate = useNavigate()
-
-  useEffect(() => {
-    // Redirect to home if already authenticated
-    if (!isLoading && isAuthenticated) {
-      navigate('/', { replace: true })
-    }
-  }, [isAuthenticated, isLoading, navigate])
-
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return (
-      <AuthPageWrapper>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading...</p>
-        </div>
-      </AuthPageWrapper>
-    )
-  }
-
-  // Don't render forms if already authenticated (will redirect)
-  if (isAuthenticated) {
-    return null
-  }
 
   const handleAuthSuccess = () => {
     // Navigate to home page after successful authentication
     navigate('/', { replace: true })
   }
 
+  // Server-side loader handles auth redirect, so we can render directly
   return (
     <AuthPageWrapper>
       <AuthForms onSuccess={handleAuthSuccess} />

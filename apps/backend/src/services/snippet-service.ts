@@ -13,10 +13,8 @@ interface CreateSnippetWithOwnerRequest extends CreateSnippetRequest {
 
 export class SnippetService {
   private aiService: AIService | null = null
-  private repository: SnippetRepository
 
-  constructor(repository: SnippetRepository) {
-    this.repository = repository
+  constructor(private readonly repository: SnippetRepository) {
     try {
       this.aiService = createAIService()
     } catch (error) {
@@ -90,6 +88,19 @@ export class SnippetService {
 
   async deleteSnippet(id: string): Promise<boolean> {
     return await this.repository.delete(id)
+  }
+
+  async hasReadAccess(snippet: Snippet, userId: string, userRole: UserRole): Promise<boolean> {
+    return snippet.ownerId === userId || 
+           snippet.isPublic || 
+           userRole === 'admin' || 
+           userRole === 'moderator'
+  }
+
+  async hasWriteAccess(snippet: Snippet, userId: string, userRole: UserRole): Promise<boolean> {
+    return snippet.ownerId === userId || 
+           userRole === 'admin' || 
+           userRole === 'moderator'
   }
 
   private async generateSummary(text: string): Promise<string> {

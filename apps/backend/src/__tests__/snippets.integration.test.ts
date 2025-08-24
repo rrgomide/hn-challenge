@@ -131,7 +131,7 @@ describe('POST /snippets integration tests', () => {
       .post('/snippets')
       .set('Authorization', `Bearer ${authToken}`)
       .send(requestBody)
-      .expect(200)
+      .expect(201)
 
     expect(response.body).toHaveProperty('id')
     expect(response.body.id).toMatch(
@@ -190,13 +190,13 @@ describe('POST /snippets integration tests', () => {
       .post('/snippets')
       .set('Authorization', `Bearer ${authToken}`)
       .send({ text: 'First snippet' })
-      .expect(200)
+      .expect(201)
 
     const response2 = await request(app)
       .post('/snippets')
       .set('Authorization', `Bearer ${authToken}`)
       .send({ text: 'Second snippet' })
-      .expect(200)
+      .expect(201)
 
     expect(response1.body.id).not.toBe(response2.body.id)
     expect(response1.body.summary).toBe('AI summary for first snippet')
@@ -215,7 +215,7 @@ describe('POST /snippets integration tests', () => {
         .post('/snippets')
         .set('Authorization', `Bearer ${authToken}`)
         .send({ text: htmlText })
-        .expect(200)
+        .expect(201)
 
       expect(response.body.text).toBe(expectedSanitizedText)
       expect(response.body.summary).toBe(aiSummary)
@@ -266,14 +266,14 @@ describe('GET /snippets integration tests', () => {
       .post('/snippets')
       .set('Authorization', `Bearer ${authToken}`)
       .send({ text: 'First test snippet' })
-      .expect(200)
+      .expect(201)
 
     // Create second snippet
     const createResponse2 = await request(app)
       .post('/snippets')
       .set('Authorization', `Bearer ${authToken}`)
       .send({ text: 'Second test snippet' })
-      .expect(200)
+      .expect(201)
 
     // Get all snippets
     const getResponse = await request(app).get('/snippets').set('Authorization', `Bearer ${authToken}`).expect(200)
@@ -345,7 +345,7 @@ describe('GET /snippets/:id integration tests', () => {
       .post('/snippets')
       .set('Authorization', `Bearer ${authToken}`)
       .send({ text: 'Test snippet for retrieval' })
-      .expect(200)
+      .expect(201)
 
     const snippetId = createResponse.body.id
 

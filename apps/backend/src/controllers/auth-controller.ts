@@ -1,49 +1,38 @@
-import { Request, Response } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import bcrypt from 'bcryptjs'
 import { UserRepository } from '../repositories/user-repository.js'
 import { CreateUserRequest, LoginRequest, AuthResponse } from '../models/user.js'
 import { generateToken } from '../middleware/auth.js'
+import { ValidationError, ConflictError, UnauthorizedError } from '../utils/errors.js'
+import { validateString, validateEmail } from '../utils/validators.js'
 
 export class AuthController {
-  private userRepository: UserRepository
+  constructor(private readonly userRepository: UserRepository) {}
 
-  constructor(userRepository: UserRepository) {
-    this.userRepository = userRepository
-  }
-
-  async register(req: Request, res: Response): Promise<void> {
+  register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { username, email, password, role }: CreateUserRequest = req.body
 
-      // Validation
+      // Validation - check all required fields first
       if (!username || !email || !password) {
-        res.status(400).json({ error: 'Username, email, and password are required' })
-        return
+        throw new ValidationError('Username, email, and password are required')
       }
 
+      validateString(username, 'username', 3)
+      validateEmail(email)
       if (password.length < 6) {
-        res.status(400).json({ error: 'Password must be at least 6 characters long' })
-        return
-      }
-
-      // Email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(email)) {
-        res.status(400).json({ error: 'Invalid email format' })
-        return
+        throw new ValidationError('Password must be at least 6 characters long')
       }
 
       // Check for existing user
       const existingUserByUsername = await this.userRepository.findByUsername(username)
       if (existingUserByUsername) {
-        res.status(409).json({ error: 'Username already exists' })
-        return
+        throw new ConflictError('Username already exists')
       }
 
       const existingUserByEmail = await this.userRepository.findByEmail(email)
       if (existingUserByEmail) {
-        res.status(409).json({ error: 'Email already exists' })
-        return
+        throw new ConflictError('Email already exists')
       }
 
       // Create user
@@ -68,33 +57,32 @@ export class AuthController {
 
       res.status(201).json(response)
     } catch (error) {
-      console.error('Registration error:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      next(error)
     }
   }
 
-  async login(req: Request, res: Response): Promise<void> {
+  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { username, password }: LoginRequest = req.body
 
-      // Validation
+      // Validation - check both required fields
       if (!username || !password) {
-        res.status(400).json({ error: 'Username and password are required' })
-        return
+        throw new ValidationError('Username and password are required')
       }
+
+      validateString(username, 'username')
+      validateString(password, 'password')
 
       // Find user with password
       const userWithPassword = await this.userRepository.findByUsername(username)
       if (!userWithPassword) {
-        res.status(401).json({ error: 'Invalid credentials' })
-        return
+        throw new UnauthorizedError('Invalid credentials')
       }
 
       // Verify password
       const isPasswordValid = await bcrypt.compare(password, userWithPassword.password)
       if (!isPasswordValid) {
-        res.status(401).json({ error: 'Invalid credentials' })
-        return
+        throw new UnauthorizedError('Invalid credentials')
       }
 
       // Remove password from user object
@@ -114,8 +102,7 @@ export class AuthController {
 
       res.json(response)
     } catch (error) {
-      console.error('Login error:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      next(error)
     }
   }
 }
