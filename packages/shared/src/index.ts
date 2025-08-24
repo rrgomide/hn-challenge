@@ -56,6 +56,20 @@ export interface SnippetsResponse {
   limit: number
 }
 
+export interface ConfigUsersResponse {
+  users: User[]
+}
+
+export interface UpdateUserRoleRequest {
+  userId: string
+  role: UserRole
+}
+
+export interface UpdateUserRoleResponse {
+  message: string
+  user: User
+}
+
 export function sanitizeJsonString(text: string) {
   return text.replace(/["\\\/\b\f\n\r\t]/g, function (match) {
     switch (match) {

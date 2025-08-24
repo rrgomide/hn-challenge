@@ -1,6 +1,7 @@
-import { Moon, Sun, Menu, LogOut, User } from 'lucide-react'
+import { Moon, Sun, Menu, LogOut, User, Settings } from 'lucide-react'
 import { Button } from './ui/button'
 import { useAuth } from '../contexts/auth-context'
+import { NavLink } from 'react-router'
 
 interface AppHeaderProps {
   onToggleTheme?: () => void
@@ -67,6 +68,30 @@ function UserInfo() {
   )
 }
 
+function ConfigLink() {
+  const { user } = useAuth()
+  
+  // Only show for admin users
+  if (!user || user.role !== 'admin') return null
+  
+  return (
+    <NavLink
+      to="/config"
+      className={({ isActive }) =>
+        `inline-flex items-center h-9 px-3 rounded-md text-sm font-medium transition-colors touch-manipulation ${
+          isActive
+            ? 'bg-secondary text-secondary-foreground'
+            : 'hover:bg-accent hover:text-accent-foreground'
+        }`
+      }
+      aria-label="User management configuration"
+    >
+      <Settings className="h-4 w-4 sm:mr-2" />
+      <span className="hidden sm:inline">Config</span>
+    </NavLink>
+  )
+}
+
 function ThemeToggle({ onToggleTheme }: { onToggleTheme: () => void }) {
   return (
     <Button
@@ -95,6 +120,7 @@ export function AppHeader({ onToggleTheme, onToggleSidebar }: AppHeaderProps) {
       </div>
 
       <div className="flex items-center space-x-2">
+        <ConfigLink />
         <UserInfo />
         {onToggleTheme && <ThemeToggle onToggleTheme={onToggleTheme} />}
       </div>

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Outlet, useLoaderData, useNavigate } from 'react-router'
+import { Outlet, useLoaderData, useNavigate, useLocation } from 'react-router'
 import { AppSidebar } from '../components/app-sidebar'
 import { AppHeader } from '../components/app-header'
 import { useTheme } from '../contexts/theme-context'
@@ -102,7 +102,11 @@ export default function Layout() {
   const { toggleTheme } = useTheme()
   const { isAuthenticated, isLoading, token } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const sidebarRef = useRef<HTMLDivElement>(null)
+  
+  // Check if we should hide the sidebar (e.g., on config page)
+  const shouldHideSidebar = location.pathname === '/config'
 
   useEffect(() => {
     setMounted(true)
@@ -172,23 +176,25 @@ export default function Layout() {
     <Wrapper>
       <AppHeader
         onToggleTheme={mounted ? toggleTheme : undefined}
-        onToggleSidebar={toggleSidebar}
+        onToggleSidebar={shouldHideSidebar ? undefined : toggleSidebar}
       />
 
       <AppBodyWrapper>
-        {sidebarOpen && (
+        {!shouldHideSidebar && sidebarOpen && (
           <MobileMenuOverlay onClick={() => setSidebarOpen(false)} />
         )}
 
-        <SidebarWrapper sidebarOpen={sidebarOpen}>
-          <div ref={sidebarRef}>
-            <AppSidebar
-              snippets={snippets}
-              onNewChat={handleNewChat}
-              onClose={() => setSidebarOpen(false)}
-            />
-          </div>
-        </SidebarWrapper>
+        {!shouldHideSidebar && (
+          <SidebarWrapper sidebarOpen={sidebarOpen}>
+            <div ref={sidebarRef}>
+              <AppSidebar
+                snippets={snippets}
+                onNewChat={handleNewChat}
+                onClose={() => setSidebarOpen(false)}
+              />
+            </div>
+          </SidebarWrapper>
+        )}
 
         <MainContentWrapper>
           <Outlet />

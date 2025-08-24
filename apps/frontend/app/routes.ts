@@ -6,5 +6,6 @@ export default [
   layout("routes/_layout.tsx", [
     index("routes/_index.tsx"),
     route("snippets/:id", "routes/snippets.$id.tsx"),
+    route("config", "routes/config.tsx"),
   ]),
 ] satisfies RouteConfig;

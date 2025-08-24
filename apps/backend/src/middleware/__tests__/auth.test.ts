@@ -69,7 +69,7 @@ describe('authMiddleware', () => {
     }
     
     mockRequest.headers = { authorization: 'Bearer valid-token' }
-    vi.mocked(jwt.verify).mockReturnValue(mockPayload)
+    vi.mocked(jwt.verify).mockReturnValue(mockPayload as any)
     
     await authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
     

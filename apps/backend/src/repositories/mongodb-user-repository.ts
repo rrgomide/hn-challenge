@@ -91,6 +91,11 @@ export class MongoDbUserRepository implements UserRepository {
     return document ? this.documentToUser(document) : null
   }
 
+  async findAll(): Promise<User[]> {
+    const documents = await this.collection.find({}).toArray()
+    return documents.map(doc => this.documentToUser(doc))
+  }
+
   async update(id: string, updates: Partial<User>): Promise<User | null> {
     const now = new Date()
     const updateDoc = { ...updates, updatedAt: now }
