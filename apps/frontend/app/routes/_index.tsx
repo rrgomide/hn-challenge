@@ -10,13 +10,14 @@ import { Textarea } from '../components/ui/textarea'
 import { Button } from '../components/ui/button'
 import { RadioGroup, RadioItem } from '../components/ui/radio-group'
 import { ScrollArea } from '../components/ui/scroll-area'
-import { Send, Zap, Clock } from 'lucide-react'
+import { Send, Zap, Clock, Check } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { getAuthFromCookies } from '../lib/cookies'
 import { apiClient } from '../lib/api-client'
 import { useAuth } from '../contexts/auth-context'
 import { API_BASE_URL } from '../lib/api'
 import type { ActionFunctionArgs } from 'react-router'
+import { cn } from '../lib/utils'
 
 export async function action({ request }: ActionFunctionArgs) {
   const cookieHeader = request.headers.get('Cookie')
@@ -250,6 +251,8 @@ function SummarizeForm() {
 
   const displayError = error || actionData?.error
   const showSpinner = isSubmitting || isServerSubmitting
+  console.log({ mode })
+  console.log({ cn: cn(mode === 'batch' ? 'bg-blue-800' : 'bg-red-800') })
 
   return (
     <div className="space-y-4">
@@ -290,13 +293,28 @@ function SummarizeForm() {
             name="processingMode"
             className="w-full max-w-xs"
           >
-            <RadioItem value="batch" className="flex-1">
+            <RadioItem
+              value="batch"
+              className={cn('flex-1 relative')}
+              variant={mode === 'batch' ? 'filled' : 'default'}
+            >
               <Clock className="h-4 w-4" />
               <span>Batch</span>
+              {mode === 'batch' && (
+                <Check className="h-4 w-4 absolute top-1/2 -translate-y-1/2 right-1" />
+              )}
             </RadioItem>
-            <RadioItem value="stream" className="flex-1">
+
+            <RadioItem
+              value="stream"
+              className={cn('flex-1 relative')}
+              variant={mode === 'stream' ? 'filled' : 'default'}
+            >
               <Zap className="h-4 w-4" />
               <span>Stream</span>
+              {mode === 'stream' && (
+                <Check className="h-4 w-4 absolute top-1/2 -translate-y-1/2 right-1" />
+              )}
             </RadioItem>
           </RadioGroup>
         </div>
