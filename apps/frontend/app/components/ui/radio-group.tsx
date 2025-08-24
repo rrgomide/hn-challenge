@@ -24,7 +24,7 @@ const radioGroupVariants = cva(
 )
 
 const radioItemVariants = cva(
-  "relative flex items-center justify-center gap-2 px-3 py-2 rounded-md font-medium transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "relative flex items-center justify-center gap-2 px-3 py-2 rounded-md font-medium transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-transparent",
   {
     variants: {
       size: {
@@ -33,8 +33,8 @@ const radioItemVariants = cva(
         lg: "px-4 py-3 text-base",
       },
       variant: {
-        default: "data-[checked]:bg-background data-[checked]:text-foreground data-[checked]:shadow-sm hover:bg-background/50 text-muted-foreground",
-        filled: "data-[checked]:bg-primary data-[checked]:text-primary-foreground hover:bg-muted text-muted-foreground",
+        default: "data-[checked]:bg-background data-[checked]:text-foreground data-[checked]:border-primary data-[checked]:shadow-sm data-[checked]:shadow-primary/20 hover:bg-background/50 hover:border-border text-muted-foreground",
+        filled: "data-[checked]:bg-primary data-[checked]:text-primary-foreground data-[checked]:border-primary data-[checked]:shadow-sm data-[checked]:shadow-primary/20 hover:bg-muted hover:border-border text-muted-foreground",
       },
     },
     defaultVariants: {

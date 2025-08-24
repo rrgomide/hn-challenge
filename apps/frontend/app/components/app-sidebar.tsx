@@ -201,7 +201,7 @@ export function AppSidebar({ snippets, onNewChat, onClose, onSnippetDeleted }: A
         {onClose && <CloseButton onClose={onClose} />}
       </NewChatWrapper>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 scrollbar-thin">
         {noSnippets ? <NoSnippets /> : <SnippetList snippets={snippets} onSnippetDeleted={onSnippetDeleted} />}
       </ScrollArea>
     </Wrapper>

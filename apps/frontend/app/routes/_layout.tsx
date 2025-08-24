@@ -1,5 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Outlet, useLoaderData, useNavigate, useLocation, redirect } from 'react-router'
+import {
+  Outlet,
+  useLoaderData,
+  useNavigate,
+  useLocation,
+  redirect,
+} from 'react-router'
 import { AppSidebar } from '../components/app-sidebar'
 import { AppHeader } from '../components/app-header'
 import { useAuth } from '../contexts/auth-context'
@@ -15,25 +21,27 @@ interface LoaderData {
   user: any | null
 }
 
-export async function loader({ request }: LoaderFunctionArgs): Promise<LoaderData> {
+export async function loader({
+  request,
+}: LoaderFunctionArgs): Promise<LoaderData> {
   const cookieHeader = request.headers.get('Cookie')
   const { token, user } = getAuthFromCookies(cookieHeader)
-  
+
   const url = new URL(request.url)
   if (!token && url.pathname !== '/auth') {
     throw redirect('/auth')
   }
-  
+
   if (!token) {
     return { snippets: [], isAuthenticated: false, user: null }
   }
 
   try {
     const result: SnippetsResponse = await apiClient.get('/snippets', token)
-    return { 
-      snippets: result.data || [], 
-      isAuthenticated: true, 
-      user 
+    return {
+      snippets: result.data || [],
+      isAuthenticated: true,
+      user,
     }
   } catch (error) {
     console.error('Failed to fetch snippets in loader:', error)
@@ -47,7 +55,7 @@ export async function loader({ request }: LoaderFunctionArgs): Promise<LoaderDat
 async function fetchSnippets(token?: string): Promise<{ snippets: Snippet[] }> {
   try {
     const headers: Record<string, string> = {}
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
@@ -84,7 +92,7 @@ function MobileMenuOverlay({ onClick }: { onClick: () => void }) {
       aria-label="Close sidebar overlay"
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
+      onKeyDown={e => {
         if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onClick()
@@ -114,24 +122,33 @@ function SidebarWrapper({
 }
 
 function MainContentWrapper({ children }: { children: React.ReactNode }) {
-  return <main id="main-content" className="flex-1 w-full lg:w-auto" role="main">{children}</main>
+  return (
+    <main
+      id="main-content"
+      className="flex-1 w-full lg:w-auto overflow-y-auto scrollbar-thin"
+      role="main"
+    >
+      {children}
+    </main>
+  )
 }
 
 function AppBodyWrapper({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-1 overflow-hidden">{children}</div>
+  return <div className="flex flex-1 overflow-hidden min-h-0">{children}</div>
 }
 
 export default function Layout() {
-  const { snippets: loaderSnippets, isAuthenticated: loaderAuthenticated } = useLoaderData<typeof loader>()
+  const { snippets: loaderSnippets, isAuthenticated: loaderAuthenticated } =
+    useLoaderData<typeof loader>()
   const [mounted, setMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [snippets, setSnippets] = useState<Snippet[]>(loaderSnippets)
   const { isAuthenticated: contextAuthenticated, isLoading, token } = useAuth()
   const location = useLocation()
   const sidebarRef = useRef<HTMLDivElement>(null)
-  
+
   const isAuthenticated = loaderAuthenticated || contextAuthenticated
-  
+
   const shouldHideSidebar = location.pathname === '/config'
 
   useEffect(() => {
@@ -172,7 +189,9 @@ export default function Layout() {
   }, [])
 
   const handleSnippetDeleted = useCallback((deletedId: string) => {
-    setSnippets(prevSnippets => prevSnippets.filter(snippet => snippet?.id !== deletedId))
+    setSnippets(prevSnippets =>
+      prevSnippets.filter(snippet => snippet?.id !== deletedId)
+    )
   }, [])
 
   const toggleSidebar = useCallback(() => {
@@ -191,7 +210,6 @@ export default function Layout() {
       </Wrapper>
     )
   }
-
 
   return (
     <Wrapper>

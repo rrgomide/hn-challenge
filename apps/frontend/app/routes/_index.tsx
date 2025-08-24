@@ -1,4 +1,11 @@
-import { Form, useActionData, redirect, useNavigation, Link, useNavigate } from 'react-router'
+import {
+  Form,
+  useActionData,
+  redirect,
+  useNavigation,
+  Link,
+  useNavigate,
+} from 'react-router'
 import { Textarea } from '../components/ui/textarea'
 import { Button } from '../components/ui/button'
 import { RadioGroup, RadioItem } from '../components/ui/radio-group'
@@ -14,7 +21,7 @@ import type { ActionFunctionArgs } from 'react-router'
 export async function action({ request }: ActionFunctionArgs) {
   const cookieHeader = request.headers.get('Cookie')
   const { token } = getAuthFromCookies(cookieHeader)
-  
+
   if (!token) {
     throw redirect('/auth')
   }
@@ -23,7 +30,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const text = formData.get('text') as string
   const mode = formData.get('mode') as 'batch' | 'stream'
   const useStreaming = mode === 'stream'
-  
+
   if (!text?.trim()) {
     return { error: 'Text content is required' }
   }
@@ -35,21 +42,27 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-    const snippet = await apiClient.post('/snippets', { text: text.trim() }, token)
+    const snippet = await apiClient.post(
+      '/snippets',
+      { text: text.trim() },
+      token
+    )
     return redirect(`/snippets/${snippet.id}`)
   } catch (error) {
     console.error('Action error creating snippet:', error)
-    return { 
-      error: error instanceof Error ? error.message : 'Failed to create snippet. Please try again.'
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Failed to create snippet. Please try again.',
     }
   }
 }
 
-
 function Wrapper({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+    <div className="flex flex-col min-h-full">
+      <div className="flex-1 flex items-start justify-center p-4 sm:p-6">
         <div className="max-w-2xl w-full space-y-4 sm:space-y-6">
           {children}
         </div>
@@ -96,11 +109,11 @@ function SummarizeForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [streamingData, setStreamingData] = useState<{
-    snippet: any;
-    summary: string;
-    isComplete: boolean;
+    snippet: any
+    summary: string
+    isComplete: boolean
   } | null>(null)
-  
+
   const actionData = useActionData() as { error?: string } | undefined
   const navigation = useNavigation()
   const isServerSubmitting = navigation.state === 'submitting'
@@ -128,7 +141,7 @@ function SummarizeForm() {
 
   const handleStreamingSubmit = async () => {
     if (!text.trim() || !token || isSubmitting) return
-    
+
     setIsSubmitting(true)
     setError(null)
     setStreamingData(null)
@@ -138,12 +151,12 @@ function SummarizeForm() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           text: text.trim(),
-          isPublic: false
-        })
+          isPublic: false,
+        }),
       })
 
       if (!response.ok) {
@@ -170,36 +183,44 @@ function SummarizeForm() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6))
-              
+
               switch (data.type) {
                 case 'snippet':
                   snippet = data.data
                   setStreamingData({
                     snippet: data.data,
                     summary: '',
-                    isComplete: false
+                    isComplete: false,
                   })
                   break
-                  
+
                 case 'summary_chunk':
                   summaryAccumulator += data.data
-                  setStreamingData(prev => prev ? {
-                    ...prev,
-                    summary: summaryAccumulator
-                  } : null)
+                  setStreamingData(prev =>
+                    prev
+                      ? {
+                          ...prev,
+                          summary: summaryAccumulator,
+                        }
+                      : null
+                  )
                   break
-                  
+
                 case 'complete':
-                  setStreamingData(prev => prev ? {
-                    ...prev,
-                    summary: data.data.summary,
-                    isComplete: true
-                  } : null)
-                  
+                  setStreamingData(prev =>
+                    prev
+                      ? {
+                          ...prev,
+                          summary: data.data.summary,
+                          isComplete: true,
+                        }
+                      : null
+                  )
+
                   // Don't redirect for streaming - per requirement
                   setText('')
                   break
-                  
+
                 case 'error':
                   throw new Error(data.data.message)
               }
@@ -211,7 +232,9 @@ function SummarizeForm() {
       }
     } catch (error) {
       console.error('Streaming error:', error)
-      setError(error instanceof Error ? error.message : 'Failed to create snippet')
+      setError(
+        error instanceof Error ? error.message : 'Failed to create snippet'
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -230,13 +253,18 @@ function SummarizeForm() {
 
   return (
     <div className="space-y-4">
-      <Form ref={formRef} method="post" className="space-y-4" onSubmit={handleNormalSubmit}>
+      <Form
+        ref={formRef}
+        method="post"
+        className="space-y-4"
+        onSubmit={handleNormalSubmit}
+      >
         <Textarea
           autoFocus
           required
           name="text"
           value={text}
-          onChange={(e) => {
+          onChange={e => {
             setText(e.target.value)
             setError(null)
           }}
@@ -258,7 +286,7 @@ function SummarizeForm() {
         <div className="flex flex-col items-center space-y-3">
           <RadioGroup
             value={mode}
-            onValueChange={(value) => setMode(value as 'batch' | 'stream')}
+            onValueChange={value => setMode(value as 'batch' | 'stream')}
             name="processingMode"
             className="w-full max-w-xs"
           >
@@ -275,9 +303,8 @@ function SummarizeForm() {
 
         <p className="text-xs text-center text-muted-foreground">
           {mode === 'stream'
-            ? "Real-time streaming - see your summary as it's generated" 
-            : "Traditional mode - wait for complete summary before redirect"
-          }
+            ? "Real-time streaming - see your summary as it's generated"
+            : 'Traditional mode - wait for complete summary before redirect'}
         </p>
 
         {displayError && (
@@ -295,35 +322,53 @@ function SummarizeForm() {
             className="gap-2 w-full sm:w-48"
           >
             {useStreaming ? (
-              <Zap className={`w-4 h-4 ${showSpinner ? 'animate-pulse' : ''}`} />
+              <Zap
+                className={`w-4 h-4 ${showSpinner ? 'animate-pulse' : ''}`}
+              />
             ) : (
-              <Send className={`w-4 h-4 ${showSpinner ? 'animate-pulse' : ''}`} />
+              <Send
+                className={`w-4 h-4 ${showSpinner ? 'animate-pulse' : ''}`}
+              />
             )}
-            {showSpinner ? (useStreaming ? 'Streaming...' : 'Summarizing...') : 'Summarize'}
+            {showSpinner
+              ? useStreaming
+                ? 'Streaming...'
+                : 'Summarizing...'
+              : 'Summarize'}
           </Button>
         </div>
       </Form>
 
       {/* Streaming Results Display */}
       {streamingData && (
-        <div className="mt-6 p-4 bg-card border border-border rounded-lg space-y-3 max-h-96">
+        <div className="mt-6 p-4 bg-card border border-border rounded-lg space-y-3 streaming-content max-h-96 overflow-y-auto">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-sm">
-              {streamingData.isComplete ? 'Summary Complete' : 'Generating Summary...'}
+              {streamingData.isComplete
+                ? 'Summary Complete'
+                : 'Generating Summary...'}
             </h3>
             {!streamingData.isComplete && (
               <div className="flex space-x-1">
                 <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                <div
+                  className="w-2 h-2 bg-primary rounded-full animate-bounce"
+                  style={{ animationDelay: '0.1s' }}
+                />
+                <div
+                  className="w-2 h-2 bg-primary rounded-full animate-bounce"
+                  style={{ animationDelay: '0.2s' }}
+                />
               </div>
             )}
           </div>
-          
-          <ScrollArea className="max-h-64">
+
+          <ScrollArea className="max-h-[calc(100vh-300px)]">
             <div className="bg-muted p-3 rounded text-sm">
               {streamingData.summary || 'Waiting for summary...'}
-              {!streamingData.isComplete && <span className="animate-pulse">|</span>}
+              {!streamingData.isComplete && (
+                <span className="animate-pulse">|</span>
+              )}
             </div>
           </ScrollArea>
 
@@ -332,7 +377,9 @@ function SummarizeForm() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/snippets/${streamingData.snippet.id}`)}
+                onClick={() =>
+                  navigate(`/snippets/${streamingData.snippet.id}`)
+                }
               >
                 View Full Snippet
               </Button>

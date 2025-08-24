@@ -117,4 +117,40 @@
   .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: #6b7280;
   }
+
+  /* Ensure main content area has proper scrolling */
+  #main-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Improve scrolling behavior for streaming content */
+  .streaming-content {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+  }
+
+  /* Ensure proper height constraints for zoom scenarios */
+  @media (max-height: 600px) {
+    .streaming-content {
+      max-height: calc(100vh - 150px);
+    }
+  }
+
+  /* Handle zoom scenarios better */
+  @media (max-width: 768px) {
+    .streaming-content {
+      max-height: calc(100vh - 120px);
+    }
+  }
+
+  /* Ensure content is always scrollable when needed */
+  .overflow-y-auto {
+    overflow-y: auto !important;
+  }
+
+  /* Prevent horizontal overflow */
+  .overflow-x-hidden {
+    overflow-x: hidden !important;
+  }
 }
