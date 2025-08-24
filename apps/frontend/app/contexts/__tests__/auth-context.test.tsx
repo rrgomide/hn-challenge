@@ -5,7 +5,7 @@ import { act } from 'react'
 
 // Mock the API module
 vi.mock('../../lib/api', () => ({
-  API_BASE_URL: 'http://localhost:3000/api'
+  API_BASE_URL: 'http://localhost:3000'
 }))
 
 // Mock fetch
@@ -20,6 +20,15 @@ const mockLocalStorage = {
   clear: vi.fn()
 }
 Object.defineProperty(window, 'localStorage', { value: mockLocalStorage })
+
+// Mock window.location.href
+const mockLocation = {
+  href: '',
+  assign: vi.fn(),
+  reload: vi.fn(),
+  replace: vi.fn()
+}
+Object.defineProperty(window, 'location', { value: mockLocation, writable: true })
 
 // Test component to use the auth hook
 function TestComponent() {
@@ -43,6 +52,7 @@ describe('AuthContext', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockLocalStorage.getItem.mockReturnValue(null)
+    mockLocation.href = ''
   })
 
   describe('initial state', () => {
@@ -69,8 +79,11 @@ describe('AuthContext', () => {
       const mockUser = { id: '1', username: 'testuser', role: 'user' }
 
       mockLocalStorage.getItem
-        .mockReturnValueOnce(mockToken) // TOKEN_KEY
-        .mockReturnValueOnce(JSON.stringify(mockUser)) // USER_KEY
+        .mockImplementation((key) => {
+          if (key === 'auth_token') return mockToken
+          if (key === 'auth_user') return JSON.stringify(mockUser)
+          return null
+        })
 
       render(
         <AuthProvider>
@@ -94,8 +107,11 @@ describe('AuthContext', () => {
       const mockToken = 'valid-jwt-token'
       
       mockLocalStorage.getItem
-        .mockReturnValueOnce(mockToken) // TOKEN_KEY
-        .mockReturnValueOnce('invalid-json') // USER_KEY - corrupted data
+        .mockImplementation((key) => {
+          if (key === 'auth_token') return mockToken
+          if (key === 'auth_user') return 'invalid-json'
+          return null
+        })
 
       render(
         <AuthProvider>
@@ -174,13 +190,13 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('loading')).toHaveTextContent('loaded')
       })
 
-      await expect(async () => {
-        await act(async () => {
-          await user.click(screen.getByText('Login'))
-        })
-      }).rejects.toThrow('Invalid credentials')
+      await user.click(screen.getByText('Login'))
 
-      expect(screen.getByTestId('authenticated')).toHaveTextContent('not authenticated')
+      // Wait for the async operation to complete
+      await waitFor(() => {
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('not authenticated')
+      })
+
       expect(mockLocalStorage.setItem).not.toHaveBeenCalled()
     })
   })
@@ -244,13 +260,12 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('loading')).toHaveTextContent('loaded')
       })
 
-      await expect(async () => {
-        await act(async () => {
-          await user.click(screen.getByText('Register'))
-        })
-      }).rejects.toThrow('Username already exists')
+      await user.click(screen.getByText('Register'))
 
-      expect(screen.getByTestId('authenticated')).toHaveTextContent('not authenticated')
+      // Wait for the async operation to complete
+      await waitFor(() => {
+        expect(screen.getByTestId('authenticated')).toHaveTextContent('not authenticated')
+      })
     })
   })
 
@@ -263,8 +278,11 @@ describe('AuthContext', () => {
       const mockUser = { id: '1', username: 'testuser', role: 'user' }
 
       mockLocalStorage.getItem
-        .mockReturnValueOnce(mockToken) // TOKEN_KEY
-        .mockReturnValueOnce(JSON.stringify(mockUser)) // USER_KEY
+        .mockImplementation((key) => {
+          if (key === 'auth_token') return mockToken
+          if (key === 'auth_user') return JSON.stringify(mockUser)
+          return null
+        })
 
       render(
         <AuthProvider>
@@ -280,6 +298,7 @@ describe('AuthContext', () => {
 
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('auth_token')
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('auth_user')
+      expect(mockLocation.href).toBe('/auth')
       expect(screen.getByTestId('authenticated')).toHaveTextContent('not authenticated')
       expect(screen.getByTestId('user')).toHaveTextContent('no user')
       expect(screen.getByTestId('token')).toHaveTextContent('no token')

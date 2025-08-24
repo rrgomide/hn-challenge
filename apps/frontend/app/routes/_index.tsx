@@ -1,13 +1,14 @@
-import { Form, useActionData, redirect } from 'react-router'
+import { Form, useActionData, redirect, useNavigation, Link, useNavigate } from 'react-router'
 import { Textarea } from '../components/ui/textarea'
 import { Button } from '../components/ui/button'
-import { Send } from 'lucide-react'
+import { Send, Zap, Clock } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { getAuthFromCookies } from '../lib/cookies'
 import { apiClient } from '../lib/api-client'
+import { useAuth } from '../contexts/auth-context'
+import { API_BASE_URL } from '../lib/api'
 import type { ActionFunctionArgs } from 'react-router'
 
-// Server-side action for snippet creation
 export async function action({ request }: ActionFunctionArgs) {
   const cookieHeader = request.headers.get('Cookie')
   const { token } = getAuthFromCookies(cookieHeader)
@@ -18,9 +19,16 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const formData = await request.formData()
   const text = formData.get('text') as string
+  const useStreaming = formData.get('useStreaming') === 'true'
   
   if (!text?.trim()) {
     return { error: 'Text content is required' }
+  }
+
+  // Only handle batch requests in the server action
+  // Streaming is handled client-side
+  if (useStreaming) {
+    return { error: 'Streaming should be handled client-side' }
   }
 
   try {
@@ -50,7 +58,11 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 function Title() {
   return (
     <div className="text-center space-y-2 sm:space-y-3">
-      <h1 className="text-2xl sm:text-4xl font-bold">Snippet Summarizer</h1>
+      <h1 className="text-2xl sm:text-4xl font-bold">
+        <Link to="/" className="hover:text-primary transition-colors">
+          Snippet Summarizer
+        </Link>
+      </h1>
       <p className="text-base sm:text-lg text-muted-foreground">
         Paste or type your content below to get a summary
       </p>
@@ -77,66 +89,260 @@ function KeyboardShortcuts() {
 function SummarizeForm() {
   const formRef = useRef<HTMLFormElement>(null)
   const [text, setText] = useState('')
+  const [useStreaming, setUseStreaming] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [streamingData, setStreamingData] = useState<{
+    snippet: any;
+    summary: string;
+    isComplete: boolean;
+  } | null>(null)
+  
   const actionData = useActionData() as { error?: string } | undefined
+  const navigation = useNavigation()
+  const isServerSubmitting = navigation.state === 'submitting'
+  const navigate = useNavigate()
+  const { token } = useAuth()
 
   // Clear the text field when form is submitted successfully (no action data means redirect happened)
   useEffect(() => {
-    if (!actionData) {
+    if (!actionData && !useStreaming) {
       setText('')
     }
-  }, [actionData])
+  }, [actionData, useStreaming])
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
       event.preventDefault()
-      formRef.current?.requestSubmit()
+      if (useStreaming) {
+        handleStreamingSubmit()
+      } else {
+        formRef.current?.requestSubmit()
+      }
     }
   }
 
-  const error = actionData?.error
-  const shouldRenderError = !!error
+  const handleStreamingSubmit = async () => {
+    if (!text.trim() || !token || isSubmitting) return
+    
+    setIsSubmitting(true)
+    setError(null)
+    setStreamingData(null)
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/snippets/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          text: text.trim(),
+          isPublic: false
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      if (!response.body) {
+        throw new Error('No response body')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let snippet: any = null
+      let summaryAccumulator = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              
+              switch (data.type) {
+                case 'snippet':
+                  snippet = data.data
+                  setStreamingData({
+                    snippet: data.data,
+                    summary: '',
+                    isComplete: false
+                  })
+                  break
+                  
+                case 'summary_chunk':
+                  summaryAccumulator += data.data
+                  setStreamingData(prev => prev ? {
+                    ...prev,
+                    summary: summaryAccumulator
+                  } : null)
+                  break
+                  
+                case 'complete':
+                  setStreamingData(prev => prev ? {
+                    ...prev,
+                    summary: data.data.summary,
+                    isComplete: true
+                  } : null)
+                  
+                  // Don't redirect for streaming - per requirement
+                  setText('')
+                  break
+                  
+                case 'error':
+                  throw new Error(data.data.message)
+              }
+            } catch (parseError) {
+              console.error('Error parsing SSE data:', parseError)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Streaming error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to create snippet')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleNormalSubmit = (e: React.FormEvent) => {
+    if (useStreaming) {
+      e.preventDefault()
+      handleStreamingSubmit()
+    }
+    // Let the form submit normally for batch mode
+  }
+
+  const displayError = error || actionData?.error
+  const showSpinner = isSubmitting || isServerSubmitting
 
   return (
-    <Form ref={formRef} method="post" className="space-y-4">
-      <Textarea
-        autoFocus
-        required
-        name="text"
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value)
-        }}
-        placeholder="Paste your text here to get a summary..."
-        className="min-h-[150px] sm:min-h-[200px] resize-none touch-manipulation"
-        aria-label="Text content for summarization"
-        aria-describedby="textarea-help"
-        onKeyDown={handleKeyDown}
-      />
+    <div className="space-y-4">
+      <Form ref={formRef} method="post" className="space-y-4" onSubmit={handleNormalSubmit}>
+        <Textarea
+          autoFocus
+          required
+          name="text"
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value)
+            setError(null)
+          }}
+          placeholder="Paste your text here to get a summary..."
+          className="min-h-[150px] sm:min-h-[200px] resize-none touch-manipulation"
+          aria-label="Text content for summarization"
+          aria-describedby="textarea-help"
+          onKeyDown={handleKeyDown}
+        />
 
-      <div id="textarea-help" className="sr-only">
-        Enter or paste the text content you want to summarize. This field is
-        required.
-      </div>
+        <input type="hidden" name="useStreaming" value={useStreaming.toString()} />
 
-      {shouldRenderError && (
-        <div role="alert" className="text-red-500" aria-live="polite">
-          {error}
+        <div id="textarea-help" className="sr-only">
+          Enter or paste the text content you want to summarize. This field is
+          required.
+        </div>
+
+        {/* Streaming Mode Toggle */}
+        <div className="flex items-center justify-center space-x-3 p-3 bg-muted/50 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">Batch</span>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useStreaming}
+              onChange={(e) => setUseStreaming(e.target.checked)}
+              className="sr-only"
+            />
+            <div className={`w-11 h-6 rounded-full transition-colors ${
+              useStreaming ? 'bg-primary' : 'bg-muted-foreground/30'
+            }`}>
+              <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform transform ${
+                useStreaming ? 'translate-x-5' : 'translate-x-0'
+              } mt-0.5 ml-0.5`} />
+            </div>
+          </label>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm">Stream</span>
+            <Zap className="h-4 w-4 text-yellow-500" />
+          </div>
+        </div>
+
+        <p className="text-xs text-center text-muted-foreground">
+          {useStreaming 
+            ? "Real-time streaming - see your summary as it's generated" 
+            : "Traditional mode - wait for complete summary before redirect"
+          }
+        </p>
+
+        {displayError && (
+          <div role="alert" className="text-red-500 text-sm" aria-live="polite">
+            {displayError}
+          </div>
+        )}
+
+        <div className="flex-col sm:flex sm:flex-row sm:justify-between sm:items-center gap-2">
+          <KeyboardShortcuts />
+
+          <Button
+            type="submit"
+            disabled={!text.trim() || showSpinner}
+            className="gap-2 w-full sm:w-48"
+          >
+            {useStreaming ? (
+              <Zap className={`w-4 h-4 ${showSpinner ? 'animate-pulse' : ''}`} />
+            ) : (
+              <Send className={`w-4 h-4 ${showSpinner ? 'animate-pulse' : ''}`} />
+            )}
+            {showSpinner ? (useStreaming ? 'Streaming...' : 'Summarizing...') : 'Summarize'}
+          </Button>
+        </div>
+      </Form>
+
+      {/* Streaming Results Display */}
+      {streamingData && (
+        <div className="mt-6 p-4 bg-card border border-border rounded-lg space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-sm">
+              {streamingData.isComplete ? 'Summary Complete' : 'Generating Summary...'}
+            </h3>
+            {!streamingData.isComplete && (
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+              </div>
+            )}
+          </div>
+          
+          <div className="bg-muted p-3 rounded text-sm">
+            {streamingData.summary || 'Waiting for summary...'}
+            {!streamingData.isComplete && <span className="animate-pulse">|</span>}
+          </div>
+
+          {streamingData.isComplete && (
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/snippets/${streamingData.snippet.id}`)}
+              >
+                View Full Snippet
+              </Button>
+            </div>
+          )}
         </div>
       )}
-
-      <div className="flex-col sm:flex sm:flex-row sm:justify-between sm:items-center gap-2">
-        <KeyboardShortcuts />
-
-        <Button
-          type="submit"
-          disabled={!text.trim()}
-          className="gap-2 w-full sm:w-48"
-        >
-          <Send className="w-4 h-4" />
-          Summarize
-        </Button>
-      </div>
-    </Form>
+    </div>
   )
 }
 

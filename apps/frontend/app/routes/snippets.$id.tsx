@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router'
+import { useParams, useNavigate } from 'react-router'
 import { ScrollArea } from '../components/ui/scroll-area'
+import { Button } from '../components/ui/button'
 import { Snippet } from '@hn-challenge/shared'
 import { useAuth } from '../contexts/auth-context'
 import { API_BASE_URL } from '../lib/api'
+import { snippetService } from '../services/snippet-service'
+import { Trash2, Copy, Check } from 'lucide-react'
 
-// Client-side function to fetch a single snippet
 async function fetchSnippet(id: string, token?: string): Promise<{
   snippet: Snippet | null
   error?: string
@@ -42,9 +44,12 @@ async function fetchSnippet(id: string, token?: string): Promise<{
 export default function SnippetView() {
   const { id } = useParams<{ id: string }>()
   const { token } = useAuth()
+  const navigate = useNavigate()
   const [snippet, setSnippet] = useState<Snippet | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isCopied, setIsCopied] = useState(false)
 
   useEffect(() => {
     if (!id || !token) return
@@ -71,6 +76,54 @@ export default function SnippetView() {
     loadSnippet()
   }, [id, token])
 
+  const handleDelete = async () => {
+    if (!snippet || !token || isDeleting) return
+
+    const confirmDelete = confirm(`Delete snippet "${snippet.summary || 'Untitled'}"?`)
+    if (!confirmDelete) return
+
+    setIsDeleting(true)
+
+    try {
+      const result = await snippetService.deleteSnippet(snippet.id, token)
+      if (result.success) {
+        // Navigate to home after successful deletion
+        navigate('/', { replace: true })
+      } else {
+        alert(`Failed to delete snippet: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error deleting snippet:', error)
+      alert('An error occurred while deleting the snippet')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleCopyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setIsCopied(true)
+      setTimeout(() => setIsCopied(false), 2000) // Reset after 2 seconds
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error)
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement('textarea')
+        textArea.value = text
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        setIsCopied(true)
+        setTimeout(() => setIsCopied(false), 2000)
+      } catch (fallbackError) {
+        console.error('Fallback copy failed:', fallbackError)
+        alert('Unable to copy to clipboard')
+      }
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
@@ -94,9 +147,31 @@ export default function SnippetView() {
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 sm:p-6 border-b border-border">
-        <h2 className="text-lg sm:text-xl font-semibold mb-2">
-          {snippet.summary || 'Untitled'}
-        </h2>
+        <div className="flex items-start justify-between gap-4 mb-2">
+          <h2 className="text-lg sm:text-xl font-semibold flex-1">
+            {snippet.summary || 'Untitled'}
+          </h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="hover:bg-destructive hover:text-destructive-foreground hover:border-destructive flex-shrink-0"
+            aria-label={`Delete snippet: ${snippet.summary || 'Untitled'}`}
+          >
+            {isDeleting ? (
+              <>
+                <div className="h-3 w-3 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Deleting...
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </>
+            )}
+          </Button>
+        </div>
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">
             Original text: {snippet.text.length} characters
@@ -121,9 +196,30 @@ export default function SnippetView() {
 
           {snippet.summary && (
             <div>
-              <h3 className="text-sm font-medium mb-2 text-muted-foreground">
-                Summary
-              </h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Summary
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleCopyToClipboard(snippet.summary || '')}
+                  className="h-7 px-2 hover:bg-accent"
+                  aria-label="Copy summary to clipboard"
+                >
+                  {isCopied ? (
+                    <>
+                      <Check className="h-3 w-3 mr-1 text-green-500" />
+                      <span className="text-xs text-green-500">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3 mr-1" />
+                      <span className="text-xs">Copy</span>
+                    </>
+                  )}
+                </Button>
+              </div>
               <div className="bg-card border border-border p-3 sm:p-4 rounded-lg text-sm">
                 {snippet.summary}
               </div>

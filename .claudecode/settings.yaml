@@ -1,0 +1,4 @@
+hooks:
+  task-completed:
+    - command: 'curl -d "Task completed: Implemented UI improvements including pending states, navigation links, sign out redirect, removed comments, added ESLint, and ran tests successfully" ntfy.sh/rrgomide_4l3rts'
+      description: 'Send notification when tasks are completed'

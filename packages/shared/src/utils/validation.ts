@@ -1,4 +1,3 @@
-// Validation constants
 export const VALIDATION_RULES = {
   USERNAME: {
     MIN_LENGTH: 3,
@@ -17,7 +16,6 @@ export const VALIDATION_RULES = {
   },
 } as const
 
-// Validation functions
 export function isValidEmail(email: string): boolean {
   return VALIDATION_RULES.EMAIL.PATTERN.test(email)
 }
@@ -41,7 +39,6 @@ export function isValidText(text: string): boolean {
   return text.length <= VALIDATION_RULES.TEXT.MAX_LENGTH
 }
 
-// Validation error messages
 export const VALIDATION_MESSAGES = {
   EMAIL: {
     REQUIRED: 'Email is required',

@@ -1,4 +1,3 @@
-// @dotenvx/dotenvx/config should be the first thing to be imported
 import '@dotenvx/dotenvx/config'
 
 import { MongoClient, Db } from 'mongodb'

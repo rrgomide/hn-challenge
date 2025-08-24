@@ -1,11 +1,12 @@
 import { google } from '@ai-sdk/google'
 import { openai } from '@ai-sdk/openai'
 import { sanitizeJsonString } from '@hn-challenge/shared'
-import { generateText } from 'ai'
+import { generateText, streamText } from 'ai'
 import { config } from '../config/environment.js'
 
 export interface AIService {
   summarizeText(text: string): Promise<string>
+  summarizeTextStream(text: string): Promise<AsyncIterable<string>>
   getProviderName(): string
 }
 
@@ -38,6 +39,28 @@ export class GoogleAIService implements AIService {
     }
   }
 
+  async summarizeTextStream(text: string): Promise<AsyncIterable<string>> {
+    if (!text || text.trim() === '') {
+      throw new Error('Text cannot be empty')
+    }
+
+    const sanitizedText = sanitizeJsonString(text)
+
+    try {
+      const model = google('gemini-1.5-flash')
+
+      const { textStream } = await streamText({
+        model,
+        prompt: `Summarize the following text in a concise way (maximum 30 words): ${sanitizedText}`,
+      })
+
+      return textStream
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`Failed to generate streaming summary: ${message}`)
+    }
+  }
+
   getProviderName(): string {
     return 'google'
   }
@@ -67,6 +90,26 @@ export class OpenAIService implements AIService {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       throw new Error(`Failed to generate summary: ${message}`)
+    }
+  }
+
+  async summarizeTextStream(text: string): Promise<AsyncIterable<string>> {
+    if (!text || text.trim() === '') {
+      throw new Error('Text cannot be empty')
+    }
+
+    try {
+      const model = openai('gpt-4o-mini')
+
+      const { textStream } = await streamText({
+        model,
+        prompt: `Summarize the following text in a concise way (maximum 30 words): ${text}`,
+      })
+
+      return textStream
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`Failed to generate streaming summary: ${message}`)
     }
   }
 

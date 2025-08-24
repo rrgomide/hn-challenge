@@ -3,6 +3,7 @@ import { useNavigate, useLoaderData, redirect } from 'react-router'
 import { AuthForms } from '../components/auth-forms'
 import { useAuth } from '../contexts/auth-context'
 import { getAuthFromCookies } from '../lib/cookies'
+import { ThemeToggle } from '../components/theme-toggle'
 import type { LoaderFunctionArgs } from 'react-router'
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -26,7 +27,11 @@ export function meta() {
 
 function AuthPageWrapper({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+      {/* Theme toggle in top-right corner */}
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md">
         {children}
       </div>

@@ -7,5 +7,6 @@ export default [
     index("routes/_index.tsx"),
     route("snippets/:id", "routes/snippets.$id.tsx"),
     route("config", "routes/config.tsx"),
+    route("report", "routes/report.tsx"),
   ]),
 ] satisfies RouteConfig;

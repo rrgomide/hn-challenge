@@ -64,5 +64,4 @@ export function getConfig(): Config {
   return _config
 }
 
-// For backwards compatibility and ease of use
 export const config = getConfig()

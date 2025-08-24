@@ -1,4 +1,3 @@
-// Generic API response types
 export interface ApiErrorResponse {
   error: string
   details?: string
@@ -20,7 +19,6 @@ export interface PaginatedResponse<T = any> {
   hasPreviousPage: boolean
 }
 
-// HTTP Status codes commonly used
 export const HTTP_STATUS = {
   OK: 200,
   CREATED: 201,

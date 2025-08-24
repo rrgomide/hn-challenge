@@ -1,7 +1,6 @@
 import { UserRole } from '../types/user'
 import { Snippet } from '../types/snippet'
 
-// Role hierarchy (higher index = more permissions)
 const ROLE_HIERARCHY: UserRole[] = ['user', 'moderator', 'admin']
 
 /**

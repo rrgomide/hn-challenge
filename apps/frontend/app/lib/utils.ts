@@ -5,7 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Form validation utilities
 export function validateEmail(email: string): string | null {
   if (!email) return 'Email is required'
   if (email.length < 3) return 'Email must be at least 3 characters'
@@ -45,7 +44,6 @@ export function validateText(text: string, fieldName = 'Text'): string | null {
   return null
 }
 
-// Date utilities
 export function formatDate(date: Date | string): string {
   const d = new Date(date)
   if (isNaN(d.getTime())) return 'Invalid date'
@@ -74,7 +72,6 @@ export function formatRelativeTime(date: Date | string): string {
   return formatDate(d)
 }
 
-// String utilities
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text
   return text.substring(0, maxLength - 3) + '...'
@@ -85,7 +82,6 @@ export function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
-// Error handling utilities
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
   if (typeof error === 'string') return error

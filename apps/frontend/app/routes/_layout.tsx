@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { Outlet, useLoaderData, useNavigate, useLocation, redirect } from 'react-router'
 import { AppSidebar } from '../components/app-sidebar'
 import { AppHeader } from '../components/app-header'
-import { useTheme } from '../contexts/theme-context'
 import { useAuth } from '../contexts/auth-context'
 import { Snippet, SnippetsResponse } from '@hn-challenge/shared'
 import { API_BASE_URL } from '../lib/api'
@@ -20,19 +19,16 @@ export async function loader({ request }: LoaderFunctionArgs): Promise<LoaderDat
   const cookieHeader = request.headers.get('Cookie')
   const { token, user } = getAuthFromCookies(cookieHeader)
   
-  // If no auth token, redirect to auth page (unless already on auth page)
   const url = new URL(request.url)
   if (!token && url.pathname !== '/auth') {
     throw redirect('/auth')
   }
   
-  // If no token, return empty state
   if (!token) {
     return { snippets: [], isAuthenticated: false, user: null }
   }
 
   try {
-    // Fetch snippets server-side if authenticated
     const result: SnippetsResponse = await apiClient.get('/snippets', token)
     return { 
       snippets: result.data || [], 
@@ -41,16 +37,13 @@ export async function loader({ request }: LoaderFunctionArgs): Promise<LoaderDat
     }
   } catch (error) {
     console.error('Failed to fetch snippets in loader:', error)
-    // If token is invalid, redirect to auth
     if (error instanceof Error && error.message.includes('401')) {
       throw redirect('/auth')
     }
-    // Return empty state on other errors
     return { snippets: [], isAuthenticated: !!token, user }
   }
 }
 
-// Client-side function to fetch snippets
 async function fetchSnippets(token?: string): Promise<{ snippets: Snippet[] }> {
   try {
     const headers: Record<string, string> = {}
@@ -133,27 +126,22 @@ export default function Layout() {
   const [mounted, setMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [snippets, setSnippets] = useState<Snippet[]>(loaderSnippets)
-  const { toggleTheme } = useTheme()
   const { isAuthenticated: contextAuthenticated, isLoading, token } = useAuth()
   const location = useLocation()
   const sidebarRef = useRef<HTMLDivElement>(null)
   
-  // Use loader auth state as primary, fallback to context
   const isAuthenticated = loaderAuthenticated || contextAuthenticated
   
-  // Check if we should hide the sidebar (e.g., on config page)
   const shouldHideSidebar = location.pathname === '/config'
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Update snippets when loader data changes
   useEffect(() => {
     setSnippets(loaderSnippets)
   }, [loaderSnippets])
 
-  // Client-side snippet refresh when auth context changes
   useEffect(() => {
     if (contextAuthenticated && token && loaderSnippets.length === 0) {
       fetchSnippets(token)
@@ -180,14 +168,17 @@ export default function Layout() {
   }, [sidebarOpen])
 
   const handleNewChat = useCallback(() => {
-    setSidebarOpen(false) // Close sidebar on mobile when starting new chat
+    setSidebarOpen(false)
+  }, [])
+
+  const handleSnippetDeleted = useCallback((deletedId: string) => {
+    setSnippets(prevSnippets => prevSnippets.filter(snippet => snippet?.id !== deletedId))
   }, [])
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen(value => !value)
   }, [])
 
-  // Show loading state only for client-side transitions while context is loading
   if (isLoading && !loaderAuthenticated) {
     return (
       <Wrapper>
@@ -201,12 +192,10 @@ export default function Layout() {
     )
   }
 
-  // Server-side loader handles auth redirects, so no need for client-side check
 
   return (
     <Wrapper>
       <AppHeader
-        onToggleTheme={mounted ? toggleTheme : undefined}
         onToggleSidebar={shouldHideSidebar ? undefined : toggleSidebar}
       />
 
@@ -222,6 +211,7 @@ export default function Layout() {
                 snippets={snippets}
                 onNewChat={handleNewChat}
                 onClose={() => setSidebarOpen(false)}
+                onSnippetDeleted={handleSnippetDeleted}
               />
             </div>
           </SidebarWrapper>

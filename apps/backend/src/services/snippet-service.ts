@@ -5,7 +5,7 @@ import {
   UserRole,
 } from '@hn-challenge/shared'
 import { AIService, createAIService } from './ai-service.js'
-import { SnippetRepository } from '../repositories/snippet-repository.js'
+import { SnippetRepository, UserSnippetCount } from '../repositories/snippet-repository.js'
 
 interface CreateSnippetWithOwnerRequest extends CreateSnippetRequest {
   ownerId: string
@@ -101,6 +101,35 @@ export class SnippetService {
     return snippet.ownerId === userId || 
            userRole === 'admin' || 
            userRole === 'moderator'
+  }
+
+  async getSnippetReport(): Promise<UserSnippetCount[]> {
+    return await this.repository.getSnippetCountsByUser()
+  }
+
+  async createSnippetStream(request: CreateSnippetWithOwnerRequest): Promise<{
+    snippet: Snippet,
+    summaryStream: AsyncIterable<string>
+  }> {
+    if (!this.aiService) {
+      throw new Error('AI service not initialized')
+    }
+
+    // Create snippet with empty summary initially
+    const snippet: Partial<Snippet> = {
+      text: request.text,
+      summary: '', // Will be updated as stream completes
+      ownerId: request.ownerId,
+      isPublic: request.isPublic || false,
+    }
+
+    const createdSnippet = await this.repository.create(snippet)
+    const summaryStream = await this.aiService.summarizeTextStream(request.text)
+
+    return {
+      snippet: createdSnippet,
+      summaryStream
+    }
   }
 
   private async generateSummary(text: string): Promise<string> {

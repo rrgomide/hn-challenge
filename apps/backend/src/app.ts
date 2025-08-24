@@ -3,6 +3,7 @@ import { DatabaseConnection } from './config/database.js'
 import { SnippetController } from './controllers/snippet-controller.js'
 import { AuthController } from './controllers/auth-controller.js'
 import { ConfigController } from './controllers/config-controller.js'
+import { ReportController } from './controllers/report-controller.js'
 import { MongoDbSnippetRepository } from './repositories/mongodb-snippet-repository.js'
 import { MongoDbUserRepository } from './repositories/mongodb-user-repository.js'
 import { SnippetService } from './services/snippet-service.js'
@@ -47,6 +48,16 @@ export async function defineControllers(): Promise<Express> {
   const snippetController = new SnippetController(snippetService)
   const authController = new AuthController(userRepository)
   const configController = new ConfigController(userRepository)
+  const reportController = new ReportController(snippetService)
+
+  // Health check endpoint (no auth required)
+  app.get('/health', (req, res) => {
+    res.json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime() 
+    })
+  })
 
   // Authentication routes (no auth required)
   app.post('/auth/register', authController.register)
@@ -58,6 +69,12 @@ export async function defineControllers(): Promise<Express> {
     authMiddleware,
     requireRole(['user', 'moderator', 'admin']),
     snippetController.createSnippet
+  )
+  app.post(
+    '/snippets/stream',
+    authMiddleware,
+    requireRole(['user', 'moderator', 'admin']),
+    snippetController.createSnippetStream
   )
   app.get(
     '/snippets',
@@ -84,7 +101,7 @@ export async function defineControllers(): Promise<Express> {
     snippetController.deleteSnippet
   )
 
-  // Admin-only config routes
+  // Admin-only routes
   app.get(
     '/config',
     authMiddleware,
@@ -96,6 +113,12 @@ export async function defineControllers(): Promise<Express> {
     authMiddleware,
     requireRole(['admin']),
     configController.updateUserRole
+  )
+  app.get(
+    '/report',
+    authMiddleware,
+    requireRole(['admin']),
+    reportController.getSnippetReport
   )
 
   // Error handling middleware (must be last)

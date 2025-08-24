@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { AppHeader } from '../app-header'
 import { AuthProvider } from '../../contexts/auth-context'
+import { MemoryRouter } from 'react-router'
 
 // Mock the API module
 vi.mock('../../lib/api', () => ({
@@ -21,12 +22,14 @@ const mockLocalStorage = {
 }
 Object.defineProperty(window, 'localStorage', { value: mockLocalStorage })
 
-// Wrapper component with auth context
+// Wrapper component with auth context and router
 function AppHeaderWrapper({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      {children}
-    </AuthProvider>
+    <MemoryRouter>
+      <AuthProvider>
+        {children}
+      </AuthProvider>
+    </MemoryRouter>
   )
 }
 
@@ -159,8 +162,11 @@ describe('AppHeader', () => {
       const mockToken = 'valid-jwt-token'
 
       mockLocalStorage.getItem
-        .mockReturnValueOnce(mockToken) // TOKEN_KEY
-        .mockReturnValueOnce(JSON.stringify(mockUser)) // USER_KEY
+        .mockImplementation((key) => {
+          if (key === 'auth_token') return mockToken
+          if (key === 'auth_user') return JSON.stringify(mockUser)
+          return null
+        })
 
       render(
         <AppHeaderWrapper>
@@ -168,8 +174,11 @@ describe('AppHeader', () => {
         </AppHeaderWrapper>
       )
 
-      await screen.findByText('testuser')
-      expect(screen.getByText('testuser')).toBeInTheDocument()
+      // Wait for AuthProvider to load auth data
+      await waitFor(() => {
+        expect(screen.queryByText('testuser')).toBeInTheDocument()
+      }, { timeout: 3000 })
+      
       expect(screen.getByText('user')).toBeInTheDocument()
       expect(screen.getByLabelText('Sign out')).toBeInTheDocument()
     })
@@ -180,8 +189,11 @@ describe('AppHeader', () => {
       const mockToken = 'valid-jwt-token'
 
       mockLocalStorage.getItem
-        .mockReturnValueOnce(mockToken) // TOKEN_KEY
-        .mockReturnValueOnce(JSON.stringify(mockUser)) // USER_KEY
+        .mockImplementation((key) => {
+          if (key === 'auth_token') return mockToken
+          if (key === 'auth_user') return JSON.stringify(mockUser)
+          return null
+        })
 
       render(
         <AppHeaderWrapper>
@@ -189,7 +201,11 @@ describe('AppHeader', () => {
         </AppHeaderWrapper>
       )
 
-      await screen.findByText('testuser')
+      // Wait for AuthProvider to load auth data
+      await waitFor(() => {
+        expect(screen.queryByText('testuser')).toBeInTheDocument()
+      }, { timeout: 3000 })
+      
       const signOutButton = screen.getByLabelText('Sign out')
       await user.click(signOutButton)
 

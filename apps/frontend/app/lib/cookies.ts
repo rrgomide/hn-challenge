@@ -1,4 +1,3 @@
-// Cookie utilities for server-side and client-side use
 export class CookieManager {
   static set(name: string, value: string, options: {
     maxAge?: number // in seconds
@@ -89,7 +88,6 @@ export class CookieManager {
   }
 }
 
-// Helper function to parse auth data from cookies
 export function getAuthFromCookies(cookieHeader?: string | null) {
   const token = CookieManager.get('auth_token', cookieHeader || undefined)
   const userStr = CookieManager.get('auth_user', cookieHeader || undefined)

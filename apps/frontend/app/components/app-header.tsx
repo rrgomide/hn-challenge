@@ -1,10 +1,10 @@
-import { Moon, Sun, Menu, LogOut, User, Settings } from 'lucide-react'
+import { Menu, LogOut, User, Settings, BarChart3 } from 'lucide-react'
 import { Button } from './ui/button'
 import { useAuth } from '../contexts/auth-context'
-import { NavLink } from 'react-router'
+import { NavLink, Link } from 'react-router'
+import { ThemeToggle } from './theme-toggle'
 
 interface AppHeaderProps {
-  onToggleTheme?: () => void
   onToggleSidebar?: () => void
 }
 
@@ -37,7 +37,13 @@ function MobileMenuButton({
 }
 
 function AppTitle() {
-  return <h1 className="text-lg font-semibold">Snippet Summarizer</h1>
+  return (
+    <h1 className="text-lg font-semibold">
+      <Link to="/" className="hover:text-primary transition-colors">
+        Snippet Summarizer
+      </Link>
+    </h1>
+  )
 }
 
 function UserInfo() {
@@ -92,23 +98,32 @@ function ConfigLink() {
   )
 }
 
-function ThemeToggle({ onToggleTheme }: { onToggleTheme: () => void }) {
+function ReportLink() {
+  const { user } = useAuth()
+  
+  // Only show for admin users
+  if (!user || user.role !== 'admin') return null
+  
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={onToggleTheme}
-      className="h-9 w-9 touch-manipulation"
-      aria-label="Toggle theme"
+    <NavLink
+      to="/report"
+      className={({ isActive }) =>
+        `inline-flex items-center h-9 px-3 rounded-md text-sm font-medium transition-colors touch-manipulation ${
+          isActive
+            ? 'bg-secondary text-secondary-foreground'
+            : 'hover:bg-accent hover:text-accent-foreground'
+        }`
+      }
+      aria-label="User activity reports"
     >
-      <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-      <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-      <span className="sr-only">Toggle theme</span>
-    </Button>
+      <BarChart3 className="h-4 w-4 sm:mr-2" />
+      <span className="hidden sm:inline">Reports</span>
+    </NavLink>
   )
 }
 
-export function AppHeader({ onToggleTheme, onToggleSidebar }: AppHeaderProps) {
+
+export function AppHeader({ onToggleSidebar }: AppHeaderProps) {
   return (
     <Wrapper>
       <div className="flex items-center space-x-2">
@@ -121,8 +136,9 @@ export function AppHeader({ onToggleTheme, onToggleSidebar }: AppHeaderProps) {
 
       <div className="flex items-center space-x-2">
         <ConfigLink />
+        <ReportLink />
         <UserInfo />
-        {onToggleTheme && <ThemeToggle onToggleTheme={onToggleTheme} />}
+        <ThemeToggle />
       </div>
     </Wrapper>
   )

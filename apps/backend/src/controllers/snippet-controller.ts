@@ -131,4 +131,59 @@ export class SnippetController {
       next(error)
     }
   }
+
+  createSnippetStream = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { text, isPublic }: CreateSnippetRequest = request.body
+      const user = request.user!
+
+      // Custom validation for text to match test expectations  
+      if (!text || typeof text !== 'string' || text.trim().length === 0) {
+        throw new ValidationError('Text field is required and must be a string')
+      }
+      
+      const sanitizedText = sanitizeText(text)
+      const publicFlag = validateBoolean(isPublic, 'isPublic')
+
+      const { snippet, summaryStream } = await this.snippetService.createSnippetStream({
+        text: sanitizedText,
+        isPublic: publicFlag,
+        ownerId: user.userId
+      })
+
+      // Set headers for Server-Sent Events
+      response.setHeader('Content-Type', 'text/plain')
+      response.setHeader('Cache-Control', 'no-cache')
+      response.setHeader('Connection', 'keep-alive')
+      response.setHeader('Access-Control-Allow-Origin', '*')
+      response.setHeader('Access-Control-Allow-Headers', 'Cache-Control')
+
+      // Send initial snippet data as JSON followed by newline
+      response.write(`data: ${JSON.stringify({ type: 'snippet', data: snippet })}\n\n`)
+
+      let fullSummary = ''
+
+      try {
+        // Stream the summary chunks
+        for await (const chunk of summaryStream) {
+          fullSummary += chunk
+          response.write(`data: ${JSON.stringify({ type: 'summary_chunk', data: chunk })}\n\n`)
+        }
+
+        // Update the snippet with the complete summary
+        await this.snippetService.updateSnippet(snippet.id, { summary: fullSummary })
+
+        // Send completion event
+        response.write(`data: ${JSON.stringify({ type: 'complete', data: { summary: fullSummary } })}\n\n`)
+        
+      } catch (streamError) {
+        console.error('Error during streaming:', streamError)
+        response.write(`data: ${JSON.stringify({ type: 'error', data: { message: 'Stream interrupted' } })}\n\n`)
+      }
+
+      response.end()
+    } catch (error) {
+      next(error)
+    }
+  }
 }

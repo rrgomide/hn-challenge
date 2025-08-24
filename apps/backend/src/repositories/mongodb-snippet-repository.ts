@@ -1,7 +1,7 @@
 import { Db, Collection } from 'mongodb'
 import { randomUUID } from 'crypto'
 import { Snippet } from '../models/snippet.js'
-import { SnippetRepository } from './snippet-repository.js'
+import { SnippetRepository, UserSnippetCount } from './snippet-repository.js'
 
 interface SnippetDocument {
   _id: string
@@ -138,5 +138,41 @@ export class MongoDbSnippetRepository implements SnippetRepository {
   async delete(id: string): Promise<boolean> {
     const result = await this.collection.deleteOne({ _id: id })
     return result.deletedCount === 1
+  }
+
+  async getSnippetCountsByUser(): Promise<UserSnippetCount[]> {
+    const pipeline = [
+      {
+        $group: {
+          _id: '$ownerId',
+          snippetCount: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      {
+        $unwind: '$user'
+      },
+      {
+        $project: {
+          userId: '$_id',
+          username: '$user.username',
+          snippetCount: 1,
+          _id: 0
+        }
+      },
+      {
+        $sort: { snippetCount: -1, username: 1 }
+      }
+    ]
+
+    const results = await this.collection.aggregate<UserSnippetCount>(pipeline).toArray()
+    return results
   }
 }

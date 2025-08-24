@@ -101,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     clearAuthData()
+    window.location.href = '/auth'
   }, [clearAuthData])
 
   const value: AuthContextType = {
