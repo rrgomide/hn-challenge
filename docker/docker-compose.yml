@@ -4,12 +4,16 @@ services:
     container_name: hn-challenge-mongodb
     ports:
       - '27017:27017'
-    env_file:
-      - ../apps/backend/.env
     volumes:
       - mongodb_data:/data/db
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand({ping: 1})", "--quiet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   backend:
     build:
@@ -22,11 +26,20 @@ services:
     environment:
       - PORT=3000
       - NODE_ENV=production
-    env_file:
-      - ../apps/backend/.env
+      - MONGODB_URI_PROD=${MONGODB_URI_PROD:-mongodb://mongodb:27017/hn-challenge-prod}
+      - JWT_SECRET=${JWT_SECRET:-development-secret-key}
+      - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     restart: unless-stopped
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   frontend:
     build:
@@ -41,7 +54,14 @@ services:
       - NODE_ENV=production
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   mongodb_data:

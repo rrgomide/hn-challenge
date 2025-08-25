@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { randomUUID } from 'crypto'
+import { Snippet } from '@hn-challenge/shared'
+import type { SnippetRepository } from '../../repositories/snippet-repository.js'
 
 // Mock the AI service module before any imports
 const mockSummarizeText = vi.fn()
@@ -15,13 +17,15 @@ import { SnippetService } from '../snippet-service.js'
 // Mock repository for testing
 const mockRepository = {
   snippets: new Map(),
-  async create(snippet: any) {
+  async create(snippet: Partial<Snippet>) {
     const id = randomUUID()
     const now = new Date()
-    const fullSnippet = {
+    const fullSnippet: Snippet = {
       id,
-      text: snippet.text,
-      summary: snippet.summary,
+      text: snippet.text || '',
+      summary: snippet.summary || '',
+      ownerId: snippet.ownerId || '',
+      isPublic: snippet.isPublic || false,
       createdAt: now,
       updatedAt: now,
     }
@@ -34,15 +38,43 @@ const mockRepository = {
   async findAll() {
     return Array.from(this.snippets.values())
   },
-  async update(id: string, updates: any) {
+  async findByOwnerId(ownerId: string) {
+    return Array.from(this.snippets.values()).filter(snippet => 
+      snippet.ownerId === ownerId
+    )
+  },
+  async findPublic() {
+    return Array.from(this.snippets.values()).filter(snippet => 
+      snippet.isPublic === true
+    )
+  },
+  async findAccessible(userId: string, userRole: 'user' | 'moderator' | 'admin') {
+    return Array.from(this.snippets.values()).filter(snippet => {
+      return snippet.ownerId === userId || snippet.isPublic === true || userRole === 'admin'
+    })
+  },
+  async update(id: string, snippet: Snippet) {
     const existing = this.snippets.get(id)
     if (!existing) return null
-    const updated = { ...existing, ...updates }
-    this.snippets.set(id, updated)
-    return updated
+    this.snippets.set(id, snippet)
+    return snippet
   },
   async delete(id: string) {
     return this.snippets.delete(id)
+  },
+  async getSnippetCountsByUser() {
+    const counts: { [userId: string]: number } = {}
+    Array.from(this.snippets.values()).forEach(snippet => {
+      const ownerId = snippet.ownerId
+      if (ownerId) {
+        counts[ownerId] = (counts[ownerId] || 0) + 1
+      }
+    })
+    return Object.entries(counts).map(([userId, snippetCount]) => ({
+      userId,
+      username: `user-${userId}`,
+      snippetCount
+    }))
   },
 }
 
@@ -52,13 +84,13 @@ describe('SnippetService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRepository.snippets.clear()
-    snippetService = new SnippetService(mockRepository as any)
+    snippetService = new SnippetService(mockRepository as SnippetRepository)
   })
 
   describe('createSnippet', () => {
     it('should create a snippet with id, text, and summary', async () => {
       mockSummarizeText.mockResolvedValue('This is a test snippet')
-      const request = { text: 'This is a test snippet' }
+      const request = { text: 'This is a test snippet', ownerId: 'test-user-id' }
 
       const result = await snippetService.createSnippet(request)
 
@@ -76,7 +108,7 @@ describe('SnippetService', () => {
         'This is a very long text that contains more than ten words and should be summarized by AI'
       const aiSummary = 'AI generated summary of the long text'
       mockSummarizeText.mockResolvedValue(aiSummary)
-      const request = { text: longText }
+      const request = { text: longText, ownerId: 'test-user-id' }
 
       const result = await snippetService.createSnippet(request)
 
@@ -91,8 +123,8 @@ describe('SnippetService', () => {
         .mockResolvedValueOnce('First snippet summary')
         .mockResolvedValueOnce('Second snippet summary')
 
-      const request1 = { text: 'First snippet' }
-      const request2 = { text: 'Second snippet' }
+      const request1 = { text: 'First snippet', ownerId: 'test-user-id' }
+      const request2 = { text: 'Second snippet', ownerId: 'test-user-id' }
 
       const result1 = await snippetService.createSnippet(request1)
       const result2 = await snippetService.createSnippet(request2)
@@ -107,7 +139,7 @@ describe('SnippetService', () => {
   describe('getSnippetById', () => {
     it('should return a snippet when it exists', async () => {
       mockSummarizeText.mockResolvedValue('Test summary')
-      const request = { text: 'Test snippet' }
+      const request = { text: 'Test snippet', ownerId: 'test-user-id' }
 
       const createdSnippet = await snippetService.createSnippet(request)
       const retrievedSnippet = await snippetService.getSnippetById(
@@ -134,7 +166,7 @@ describe('SnippetService', () => {
       }))
 
       // This should not throw during construction, but log an error
-      expect(() => new SnippetService(mockRepository as any)).not.toThrow()
+      expect(() => new SnippetService(mockRepository as SnippetRepository)).not.toThrow()
     })
 
     it('should add getAllSnippets method', async () => {
@@ -142,8 +174,8 @@ describe('SnippetService', () => {
         .mockResolvedValueOnce('First snippet summary')
         .mockResolvedValueOnce('Second snippet summary')
 
-      const request1 = { text: 'First snippet' }
-      const request2 = { text: 'Second snippet' }
+      const request1 = { text: 'First snippet', ownerId: 'test-user-id' }
+      const request2 = { text: 'Second snippet', ownerId: 'test-user-id' }
 
       await snippetService.createSnippet(request1)
       await snippetService.createSnippet(request2)

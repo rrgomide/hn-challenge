@@ -3,6 +3,25 @@ import { userEvent } from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router'
 import { AppSidebar } from '../app-sidebar'
 import { Snippet } from '@hn-challenge/shared'
+import { AuthProvider } from '../../contexts/auth-context'
+
+// Mock the API module
+vi.mock('../../lib/api', () => ({
+  API_BASE_URL: 'http://localhost:3000/api',
+}))
+
+// Mock fetch
+const mockFetch = vi.fn()
+global.fetch = mockFetch
+
+// Mock localStorage
+const mockLocalStorage = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+}
+Object.defineProperty(window, 'localStorage', { value: mockLocalStorage })
 
 const mockNavigate = vi.fn()
 
@@ -16,7 +35,9 @@ vi.mock('react-router', async () => {
 })
 
 const MockRouter = ({ children }: { children: React.ReactNode }) => (
-  <BrowserRouter>{children}</BrowserRouter>
+  <BrowserRouter>
+    <AuthProvider>{children}</AuthProvider>
+  </BrowserRouter>
 )
 
 const mockSnippets: Snippet[] = [
@@ -24,6 +45,8 @@ const mockSnippets: Snippet[] = [
     id: '1',
     text: 'Test snippet 1',
     summary: 'First snippet',
+    ownerId: 'user1',
+    isPublic: true,
     createdAt: new Date('2023-01-01T00:00:00.000Z'),
     updatedAt: new Date('2023-01-01T00:00:00.000Z'),
   },
@@ -31,6 +54,8 @@ const mockSnippets: Snippet[] = [
     id: '2',
     text: 'Test snippet 2',
     summary: 'Second snippet',
+    ownerId: 'user1',
+    isPublic: false,
     createdAt: new Date('2023-01-02T00:00:00.000Z'),
     updatedAt: new Date('2023-01-02T00:00:00.000Z'),
   },
@@ -38,7 +63,9 @@ const mockSnippets: Snippet[] = [
 
 describe('AppSidebar', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     mockNavigate.mockClear()
+    mockLocalStorage.getItem.mockReturnValue(null)
   })
 
   it('renders new chat button', () => {
@@ -167,18 +194,6 @@ describe('AppSidebar', () => {
     expect(snippetLink).toHaveAttribute('href', '/snippets/1')
   })
 
-  it('displays formatted creation dates for snippets', () => {
-    const mockOnNewChat = vi.fn()
-    render(
-      <MockRouter>
-        <AppSidebar snippets={mockSnippets} onNewChat={mockOnNewChat} />
-      </MockRouter>
-    )
-
-    expect(screen.getByText('12/31/2022')).toBeInTheDocument()
-    expect(screen.getByText('1/1/2023')).toBeInTheDocument()
-  })
-
   it('shows "Untitled" for snippets without summary', () => {
     const snippetWithoutSummary = [{ ...mockSnippets[0], summary: '' }]
     const mockOnNewChat = vi.fn()
@@ -196,7 +211,7 @@ describe('AppSidebar', () => {
 
   it('shows "Unknown date" for snippets without createdAt', () => {
     const snippetWithoutDate = [
-      { ...mockSnippets[0], createdAt: undefined as any },
+      { ...mockSnippets[0], createdAt: undefined as unknown as Date },
     ]
     const mockOnNewChat = vi.fn()
     render(

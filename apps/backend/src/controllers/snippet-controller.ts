@@ -1,85 +1,190 @@
-import { Request, Response } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import { SnippetService } from '../services/snippet-service.js'
-import { CreateSnippetRequest, SnippetsResponse } from '../models/snippet'
+import { CreateSnippetRequest } from '../models/snippet'
+import { Snippet } from '@hn-challenge/shared'
+import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors.js'
+import { validateString, validateUUID, validateBoolean, sanitizeText } from '../utils/validators.js'
 
 export class SnippetController {
-  private snippetService: SnippetService
+  constructor(private readonly snippetService: SnippetService) {}
 
-  constructor(snippetService: SnippetService) {
-    this.snippetService = snippetService
-  }
-
-  private sanitizeText(text: string): string {
-    // First, remove script tags and their content completely
-    let sanitized = text.replace(
-      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-      ''
-    )
-
-    // Remove other HTML tags but keep their content
-    sanitized = sanitized.replace(/<[^>]*>/g, '')
-
-    // Only normalize whitespace that appears to be from HTML (multiple spaces/tabs)
-    // but preserve intentional newlines and single spaces
-    sanitized = sanitized.replace(/[ \t]+/g, ' ').trim()
-
-    return sanitized
-  }
-
-  async createSnippet(request: Request, response: Response): Promise<void> {
+  createSnippet = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
     try {
-      const { text }: CreateSnippetRequest = request.body
+      const { text, isPublic }: CreateSnippetRequest = request.body
+      const user = request.user!
 
-      if (!text || typeof text !== 'string') {
-        response
-          .status(400)
-          .json({ error: 'Text field is required and must be a string' })
-        return
+      // Custom validation for text to match test expectations  
+      if (!text || typeof text !== 'string' || text.trim().length === 0) {
+        throw new ValidationError('Text field is required and must be a string')
       }
-
-      // Sanitize the text input to remove HTML tags and normalize whitespace
-      const sanitizedText = this.sanitizeText(text)
+      
+      const sanitizedText = sanitizeText(text)
+      const publicFlag = validateBoolean(isPublic, 'isPublic')
 
       const snippet = await this.snippetService.createSnippet({
         text: sanitizedText,
+        isPublic: publicFlag,
+        ownerId: user.userId
       })
-      response.json(snippet)
+      
+      response.status(201).json(snippet)
     } catch (error) {
-      console.error('Error creating snippet:', error)
-      response.status(500).json({ error: 'Internal server error' })
+      next(error)
     }
   }
 
-  async getSnippet(req: Request, res: Response): Promise<void> {
+  getSnippet = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
     try {
-      const { id } = req.params
+      const { id } = request.params
+      const user = request.user!
 
-      if (!id || id.trim() === '') {
-        res.status(400).json({ error: 'Snippet ID is required' })
-        return
-      }
+      validateUUID(id, 'snippet ID')
 
       const snippet = await this.snippetService.getSnippetById(id)
-
       if (!snippet) {
-        res.status(404).json({ error: 'Snippet not found' })
-        return
+        throw new NotFoundError('Snippet not found')
       }
 
-      res.json(snippet)
+      // Check access permissions
+      const hasAccess = await this.snippetService.hasReadAccess(snippet, user.userId, user.role)
+      if (!hasAccess) {
+        throw new ForbiddenError('Access denied')
+      }
+
+      response.json(snippet)
     } catch (error) {
-      console.error('Error retrieving snippet:', error)
-      res.status(500).json({ error: 'Internal server error' })
+      next(error)
     }
   }
 
-  async getAllSnippets(request: Request, response: Response): Promise<void> {
+  getAllSnippets = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
     try {
-      const snippets = await this.snippetService.getAllSnippets()
-      response.json(snippets)
+      const user = request.user!
+      const snippetsResponse = await this.snippetService.getAccessibleSnippets(user.userId, user.role)
+      
+      // Service already returns paginated response
+      response.json(snippetsResponse)
     } catch (error) {
-      console.error('Error retrieving all snippets:', error)
-      response.status(500).json({ error: 'Internal server error' })
+      next(error)
+    }
+  }
+
+  updateSnippet = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = request.params
+      const { text, isPublic } = request.body
+      const user = request.user!
+
+      validateUUID(id, 'snippet ID')
+
+      const snippet = await this.snippetService.getSnippetById(id)
+      if (!snippet) {
+        throw new NotFoundError('Snippet not found')
+      }
+
+      // Check modification permissions
+      const canModify = await this.snippetService.hasWriteAccess(snippet, user.userId, user.role)
+      if (!canModify) {
+        throw new ForbiddenError('Access denied')
+      }
+
+      const updates: Partial<Pick<Snippet, 'text' | 'isPublic'>> = {}
+      if (text !== undefined) {
+        validateString(text, 'text')
+        updates.text = sanitizeText(text)
+      }
+      if (isPublic !== undefined) {
+        updates.isPublic = validateBoolean(isPublic, 'isPublic')
+      }
+
+      const updatedSnippet = await this.snippetService.updateSnippet(id, updates)
+      response.json(updatedSnippet)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  deleteSnippet = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id } = request.params
+      const user = request.user!
+
+      validateUUID(id, 'snippet ID')
+
+      const snippet = await this.snippetService.getSnippetById(id)
+      if (!snippet) {
+        throw new NotFoundError('Snippet not found')
+      }
+
+      // Check deletion permissions
+      const canDelete = await this.snippetService.hasWriteAccess(snippet, user.userId, user.role)
+      if (!canDelete) {
+        throw new ForbiddenError('Access denied')
+      }
+
+      const deleted = await this.snippetService.deleteSnippet(id)
+      if (deleted) {
+        response.json({ message: 'Snippet deleted successfully' })
+      } else {
+        throw new Error('Failed to delete snippet')
+      }
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  createSnippetStream = async (request: Request, response: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { text, isPublic }: CreateSnippetRequest = request.body
+      const user = request.user!
+
+      // Custom validation for text to match test expectations  
+      if (!text || typeof text !== 'string' || text.trim().length === 0) {
+        throw new ValidationError('Text field is required and must be a string')
+      }
+      
+      const sanitizedText = sanitizeText(text)
+      const publicFlag = validateBoolean(isPublic, 'isPublic')
+
+      const { snippet, summaryStream } = await this.snippetService.createSnippetStream({
+        text: sanitizedText,
+        isPublic: publicFlag,
+        ownerId: user.userId
+      })
+
+      // Set headers for Server-Sent Events
+      response.setHeader('Content-Type', 'text/plain')
+      response.setHeader('Cache-Control', 'no-cache')
+      response.setHeader('Connection', 'keep-alive')
+      response.setHeader('Access-Control-Allow-Origin', '*')
+      response.setHeader('Access-Control-Allow-Headers', 'Cache-Control')
+
+      // Send initial snippet data as JSON followed by newline
+      response.write(`data: ${JSON.stringify({ type: 'snippet', data: snippet })}\n\n`)
+
+      let fullSummary = ''
+
+      try {
+        // Stream the summary chunks
+        for await (const chunk of summaryStream) {
+          fullSummary += chunk
+          response.write(`data: ${JSON.stringify({ type: 'summary_chunk', data: chunk })}\n\n`)
+        }
+
+        // Update the snippet with the complete summary
+        await this.snippetService.updateSnippet(snippet.id, { summary: fullSummary })
+
+        // Send completion event
+        response.write(`data: ${JSON.stringify({ type: 'complete', data: { summary: fullSummary } })}\n\n`)
+        
+      } catch (streamError) {
+        console.error('Error during streaming:', streamError)
+        response.write(`data: ${JSON.stringify({ type: 'error', data: { message: 'Stream interrupted' } })}\n\n`)
+      }
+
+      response.end()
+    } catch (error) {
+      next(error)
     }
   }
 }

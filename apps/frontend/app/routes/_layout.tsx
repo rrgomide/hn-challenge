@@ -1,18 +1,47 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Outlet, useLoaderData } from 'react-router'
+import { Outlet, useLoaderData, useLocation, redirect } from 'react-router'
 import { AppSidebar } from '../components/app-sidebar'
 import { AppHeader } from '../components/app-header'
-import { useTheme } from '../contexts/theme-context'
+import { useAuth } from '../contexts/auth-context'
+import { Snippet, User } from '@hn-challenge/shared'
+import type { LoaderFunctionArgs } from 'react-router'
+import { validateSession } from '../server/session.server'
 import { getSnippets } from '../server/snippets.server'
-import { Snippet } from '@hn-challenge/shared'
 
 interface LoaderData {
   snippets: Snippet[]
+  isAuthenticated: boolean
+  user: User | null
 }
 
-export async function loader(): Promise<LoaderData> {
-  const { snippets } = await getSnippets()
-  return { snippets }
+export async function loader({
+  request,
+}: LoaderFunctionArgs): Promise<LoaderData> {
+  const { token, user } = validateSession(request)
+
+  if (!token) {
+    return { snippets: [], isAuthenticated: false, user: null }
+  }
+
+  try {
+    const { snippets, error } = await getSnippets(token)
+
+    if (error === 'Unauthorized') {
+      throw redirect('/auth')
+    }
+
+    return {
+      snippets,
+      isAuthenticated: true,
+      user,
+    }
+  } catch (error) {
+    console.error('Failed to fetch snippets in loader:', error)
+    if (error instanceof Error && error.message.includes('401')) {
+      throw redirect('/auth')
+    }
+    return { snippets: [], isAuthenticated: Boolean(token), user }
+  }
 }
 
 export function meta() {
@@ -34,7 +63,7 @@ function MobileMenuOverlay({ onClick }: { onClick: () => void }) {
       aria-label="Close sidebar overlay"
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
+      onKeyDown={e => {
         if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onClick()
@@ -64,23 +93,42 @@ function SidebarWrapper({
 }
 
 function MainContentWrapper({ children }: { children: React.ReactNode }) {
-  return <main id="main-content" className="flex-1 w-full lg:w-auto" role="main">{children}</main>
+  return (
+    <main
+      id="main-content"
+      className="flex-1 w-full lg:w-auto overflow-y-auto scrollbar-thin"
+      role="main"
+    >
+      {children}
+    </main>
+  )
 }
 
 function AppBodyWrapper({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-1 overflow-hidden">{children}</div>
+  return <div className="flex flex-1 overflow-hidden min-h-0">{children}</div>
 }
 
 export default function Layout() {
-  const { snippets } = useLoaderData<typeof loader>()
-  const [mounted, setMounted] = useState(false)
+  const { snippets: loaderSnippets, isAuthenticated: loaderAuthenticated } =
+    useLoaderData<typeof loader>()
+  const [_mounted, setMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { toggleTheme } = useTheme()
+  const [snippets, setSnippets] = useState<Snippet[]>(loaderSnippets)
+  const { isAuthenticated: contextAuthenticated, isLoading, token: _token } = useAuth()
+  const location = useLocation()
   const sidebarRef = useRef<HTMLDivElement>(null)
+
+  const _isAuthenticated = loaderAuthenticated || contextAuthenticated
+
+  const shouldHideSidebar = location.pathname === '/config'
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    setSnippets(loaderSnippets)
+  }, [loaderSnippets])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -96,34 +144,55 @@ export default function Layout() {
   }, [sidebarOpen])
 
   const handleNewChat = useCallback(() => {
-    setSidebarOpen(false) // Close sidebar on mobile when starting new chat
+    setSidebarOpen(false)
+  }, [])
+
+  const handleSnippetDeleted = useCallback((deletedId: string) => {
+    setSnippets(prevSnippets =>
+      prevSnippets.filter(snippet => snippet?.id !== deletedId)
+    )
   }, [])
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen(value => !value)
   }, [])
 
+  if (isLoading && !loaderAuthenticated) {
+    return (
+      <Wrapper>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-2 text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </Wrapper>
+    )
+  }
+
   return (
     <Wrapper>
       <AppHeader
-        onToggleTheme={mounted ? toggleTheme : undefined}
-        onToggleSidebar={toggleSidebar}
+        onToggleSidebar={shouldHideSidebar ? undefined : toggleSidebar}
       />
 
       <AppBodyWrapper>
-        {sidebarOpen && (
+        {!shouldHideSidebar && sidebarOpen && (
           <MobileMenuOverlay onClick={() => setSidebarOpen(false)} />
         )}
 
-        <SidebarWrapper sidebarOpen={sidebarOpen}>
-          <div ref={sidebarRef}>
-            <AppSidebar
-              snippets={snippets}
-              onNewChat={handleNewChat}
-              onClose={() => setSidebarOpen(false)}
-            />
-          </div>
-        </SidebarWrapper>
+        {!shouldHideSidebar && (
+          <SidebarWrapper sidebarOpen={sidebarOpen}>
+            <div ref={sidebarRef}>
+              <AppSidebar
+                snippets={snippets}
+                onNewChat={handleNewChat}
+                onClose={() => setSidebarOpen(false)}
+                onSnippetDeleted={handleSnippetDeleted}
+              />
+            </div>
+          </SidebarWrapper>
+        )}
 
         <MainContentWrapper>
           <Outlet />

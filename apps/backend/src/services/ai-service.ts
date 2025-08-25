@@ -1,10 +1,12 @@
 import { google } from '@ai-sdk/google'
 import { openai } from '@ai-sdk/openai'
 import { sanitizeJsonString } from '@hn-challenge/shared'
-import { generateText } from 'ai'
+import { generateText, streamText } from 'ai'
+import { config } from '../config/environment.js'
 
 export interface AIService {
   summarizeText(text: string): Promise<string>
+  summarizeTextStream(text: string): Promise<AsyncIterable<string>>
   getProviderName(): string
 }
 
@@ -34,6 +36,28 @@ export class GoogleAIService implements AIService {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       throw new Error(`Failed to generate summary: ${message}`)
+    }
+  }
+
+  async summarizeTextStream(text: string): Promise<AsyncIterable<string>> {
+    if (!text || text.trim() === '') {
+      throw new Error('Text cannot be empty')
+    }
+
+    const sanitizedText = sanitizeJsonString(text)
+
+    try {
+      const model = google('gemini-1.5-flash')
+
+      const { textStream } = await streamText({
+        model,
+        prompt: `Summarize the following text in a concise way (maximum 30 words): ${sanitizedText}`,
+      })
+
+      return textStream
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`Failed to generate streaming summary: ${message}`)
     }
   }
 
@@ -69,22 +93,39 @@ export class OpenAIService implements AIService {
     }
   }
 
+  async summarizeTextStream(text: string): Promise<AsyncIterable<string>> {
+    if (!text || text.trim() === '') {
+      throw new Error('Text cannot be empty')
+    }
+
+    try {
+      const model = openai('gpt-4o-mini')
+
+      const { textStream } = await streamText({
+        model,
+        prompt: `Summarize the following text in a concise way (maximum 30 words): ${text}`,
+      })
+
+      return textStream
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`Failed to generate streaming summary: ${message}`)
+    }
+  }
+
   getProviderName(): string {
     return 'openai'
   }
 }
 
 export function createAIService(): AIService {
-  const googleApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-  const openaiApiKey = process.env.OPENAI_API_KEY
-
   // Prioritize Google AI first
-  if (googleApiKey) {
-    return new GoogleAIService(googleApiKey)
+  if (config.googleAiApiKey) {
+    return new GoogleAIService(config.googleAiApiKey)
   }
 
-  if (openaiApiKey) {
-    return new OpenAIService(openaiApiKey)
+  if (config.openaiApiKey) {
+    return new OpenAIService(config.openaiApiKey)
   }
 
   throw new Error(

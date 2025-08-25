@@ -1,0 +1,218 @@
+name: HN Challenge Continuous Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Lint and type checking
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @hn-challenge/shared build
+
+      - name: Lint all packages
+        run: pnpm lint
+
+      - name: Type check all packages
+        run: pnpm typecheck
+
+  # Backend tests
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+
+    # MongoDB service for integration tests
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok' --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @hn-challenge/shared build
+
+      - name: Run backend tests
+        run: pnpm test:backend
+        env:
+          MONGODB_URI_DEV: ${{ secrets.MONGODB_URI_DEV }}
+          MONGODB_URI_PROD: ${{ secrets.MONGODB_URI_PROD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          NODE_ENV: test
+
+  # Frontend tests
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.14.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @hn-challenge/shared build
+
+      - name: Run frontend tests
+        run: pnpm test:frontend
+
+  # Build Docker images and test them
+  docker-build:
+    name: Docker Build & Test
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    needs: [lint-and-typecheck, backend-tests, frontend-tests]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          target: backend
+          push: false
+          tags: hn-challenge/backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+
+      - name: Build frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          target: frontend
+          push: false
+          tags: hn-challenge/frontend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+
+      - name: Test Docker Compose setup
+        run: |
+          # Set environment variables for Docker Compose
+          export MONGODB_URI_PROD="mongodb://mongodb:27017/hn-challenge-prod"
+          export JWT_SECRET="test-secret-for-docker"
+          export NODE_ENV="production"
+
+          # Clean up any existing containers first
+          docker compose -f docker/docker-compose.yml down -v --remove-orphans || true
+
+          # Test that services start properly
+          echo "Starting Docker Compose services..."
+          docker compose -f docker/docker-compose.yml up --build -d --wait
+
+          echo "All services started successfully with health checks passed!"
+
+          # Verify services are working
+          echo "Backend health check response:"
+          curl -s http://localhost:3000/health || echo "Backend health check failed"
+
+          echo "Frontend response (first few lines):"
+          curl -s http://localhost:3030 | head -10 || echo "Frontend request failed"
+
+          # Check service logs for errors
+          echo "Service logs:"
+          docker compose -f docker/docker-compose.yml logs --tail=50
+
+          # Clean up
+          docker compose -f docker/docker-compose.yml down -v
+
+  # Deployment preparation (only on main branch)
+  deployment-ready:
+    name: Deployment Ready
+    runs-on: ubuntu-22.04
+    needs: [lint-and-typecheck, backend-tests, frontend-tests, docker-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deployment successful
+        run: |
+          echo "🎉 All checks passed! Ready for deployment."
+          echo "✅ Code linted and type-checked"
+          echo "✅ Backend tests passed"
+          echo "✅ Frontend tests passed"
+          echo "✅ Docker images built successfully"
+
+      - name: Create deployment artifact
+        run: |
+          echo "$(date): Build #${{ github.run_number }} - $(git rev-parse --short HEAD)" > deployment-info.txt
+          echo "Branch: ${{ github.ref_name }}" >> deployment-info.txt
+          echo "Commit: ${{ github.sha }}" >> deployment-info.txt
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-info
+          path: deployment-info.txt
+          retention-days: 30

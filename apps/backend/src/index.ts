@@ -1,12 +1,12 @@
 import { defineControllers } from './app.js'
+import { config } from './config/environment.js'
 
 async function startServer() {
   try {
     const app = await defineControllers()
-    const port = process.env.PORT || 3000
 
-    app.listen(port, () => {
-      console.log(`Server running on port ${port}`)
+    app.listen(config.port, () => {
+      console.log(`Server running on port ${config.port} (${config.nodeEnv} mode)`)
     })
   } catch (error) {
     console.error('Failed to start server:', error)
