@@ -20,6 +20,7 @@ vi.mock('lucide-react', () => ({
   Trash2: () => React.createElement('div', { 'data-testid': 'trash-icon' }),
   Clock: () => React.createElement('div', { 'data-testid': 'clock-icon' }),
   Zap: () => React.createElement('div', { 'data-testid': 'zap-icon' }),
+  Check: () => React.createElement('div', { 'data-testid': 'check-icon' }),
 }))
 
 // Mock window.location.href to prevent jsdom navigation errors
