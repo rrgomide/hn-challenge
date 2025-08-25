@@ -6,11 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a TypeScript monorepo using pnpm workspaces with the following structure:
 
-- **Backend** (`apps/backend`): Express.js API server with TypeScript, MongoDB integration, AI-powered text summarization
-- **Frontend** (`apps/frontend`): React Router v7 application with Vite, Tailwind CSS, server-side rendering
-- **Shared** (`packages/shared`): Common utilities, types, and interfaces shared between frontend and backend
+- **Backend** (`apps/backend`): Express.js API server with TypeScript, MongoDB integration, JWT authentication system, role-based access control, AI-powered text summarization
+- **Frontend** (`apps/frontend`): React Router v7 application with Vite, Tailwind CSS, server-side rendering, authentication flows, admin interfaces
+- **Shared** (`packages/shared`): Common utilities, types, and interfaces shared between frontend and backend including authentication types
 
-The backend implements a snippet creation and retrieval API with MongoDB persistence and AI-powered text summarization using Google Gemini or OpenAI. The frontend provides a modern interface built with React Router v7 and comprehensive accessibility features.
+The backend implements a complete authentication system with user registration/login, JWT tokens, role-based access control (user/moderator/admin), snippet management API, user management endpoints, and analytics reporting. MongoDB stores both users and snippets with proper relationship management. The frontend provides authentication flows, protected routes, admin interfaces for user management, analytics dashboards, and comprehensive accessibility features.
 
 ## Development Commands
 
@@ -53,8 +53,9 @@ The backend implements a snippet creation and retrieval API with MongoDB persist
 ## Testing Strategy
 
 - **Backend**: Uses **Vitest** with Supertest for integration tests and unit tests
-  - Integration tests cover the `/snippets` API endpoints comprehensively
-  - Service layer unit tests for AI integration and business logic
+  - Integration tests cover `/snippets`, `/auth`, `/config`, and `/report` API endpoints comprehensively
+  - Authentication and authorization middleware testing with JWT validation
+  - Service layer unit tests for AI integration, authentication, and business logic
   - Test files located in `__tests__/` directories and service subdirectories
 
 - **Frontend**: Uses **Vitest** with React Testing Library and jsdom
@@ -65,26 +66,43 @@ The backend implements a snippet creation and retrieval API with MongoDB persist
 ## Key Architecture Patterns
 
 ### Backend (Express + TypeScript + MongoDB)
-- **Repository pattern**: Abstracted data access with MongoDB implementation
+- **Repository pattern**: Abstracted data access with MongoDB implementation for users and snippets
 - **Controller-Service pattern**: Controllers handle HTTP, Services contain business logic
+- **Authentication system**: JWT tokens with bcrypt password hashing and role-based middleware
+- **Role-based access control**: Three-tier system (user/moderator/admin) with protected endpoints
 - **AI Integration**: Dual provider support (Google Gemini + OpenAI) with automatic fallback
-- **Database**: MongoDB with connection pooling and proper error handling
+- **Database**: MongoDB with dual collections (users, snippets) and proper error handling
 - **ESM modules**: Uses ES modules with .js extensions in imports (Node.js ESM requirement)
-- **Environment-based configuration**: Supports development and production MongoDB URIs
+- **Environment-based configuration**: Supports development/production MongoDB URIs and JWT secrets
 
 ### Frontend (React Router v7)
-- **File-based routing**: Routes defined in `app/routes.ts`
-- **Server-side rendering**: React Router v7 handles SSR out of the box
+- **File-based routing**: Routes defined in `app/routes.ts` with protected routes for authenticated users
+- **Authentication context**: React context for auth state management with login/logout flows
+- **Multi-page application**: Auth, snippets, user management (config), and reporting interfaces
+- **Server-side rendering**: React Router v7 handles SSR with session management
+- **Admin interfaces**: User management dashboard and analytics reporting for admin users
 - **Theme system**: Dark/light mode with system preference detection
 - **Accessibility**: Comprehensive a11y features including skip links and ARIA labels
-- **Component architecture**: Reusable UI components with TypeScript
+- **Component architecture**: Reusable UI components with TypeScript and form handling
 - **Tailwind CSS**: For styling with Inter font and custom theme variables
 
 ### Shared Package
-- **Type definitions**: Shared interfaces for API contracts (Snippet, CreateSnippetRequest, etc.)
+- **Type definitions**: Shared interfaces for API contracts including authentication types (User, AuthResponse, JWTPayload) and snippet types (Snippet, CreateSnippetRequest, etc.)
+- **Authentication types**: User roles, login/register requests, JWT payload structure
+- **API contracts**: Request/response interfaces for all endpoints (auth, snippets, config, reports)
 - **Utilities**: Common functions like `sanitizeJsonString` for data processing
 - **Workspace reference**: Used via `workspace:*` in package.json dependencies
 - **Build requirement**: Must be built before backend/frontend can use it
+
+## Authentication & Authorization
+
+The application includes a comprehensive authentication system:
+- **JWT tokens**: Stateless authentication with configurable expiration
+- **Password security**: bcrypt hashing with salt rounds for secure password storage  
+- **Role-based access**: Three-tier system (user, moderator, admin) with middleware protection
+- **Protected routes**: Frontend routes require authentication with role-based access
+- **Session management**: Secure cookie-based session handling with React context
+- **Admin features**: User management interface and analytics dashboard for admin users
 
 ## AI Integration
 
@@ -96,11 +114,13 @@ The backend integrates with AI services for text summarization:
 
 ## Database Configuration
 
-- **MongoDB**: Primary database for snippet storage
+- **MongoDB**: Primary database with dual collections for users and snippets
+- **Collections**: `users` (authentication, roles, profiles) and `snippets` (user-generated content)
 - **Development**: Uses `MONGODB_URI_DEV` environment variable
-- **Production**: Uses `MONGODB_URI_PROD` environment variable
-- **Connection**: Singleton pattern with proper connection management
-- **Docker**: Includes MongoDB service in docker-compose.yml
+- **Production**: Uses `MONGODB_URI_PROD` environment variable  
+- **Connection**: Singleton pattern with proper connection management and error handling
+- **User relationships**: Snippets linked to users via userId field for ownership tracking
+- **Docker**: Includes MongoDB 7.0 service with initialization scripts and health checks
 
 ## Docker Setup
 
@@ -135,6 +155,7 @@ Comprehensive Docker configuration in the `docker/` directory:
 ### Backend Required
 - `MONGODB_URI_DEV` - Development MongoDB connection string
 - `MONGODB_URI_PROD` - Production MongoDB connection string
+- `JWT_SECRET` - Secret key for JWT token signing (critical for authentication security)
 - `GOOGLE_GENERATIVE_AI_API_KEY` - Google AI API key (optional, primary AI provider)
 - `OPENAI_API_KEY` - OpenAI API key (optional, fallback AI provider)
 

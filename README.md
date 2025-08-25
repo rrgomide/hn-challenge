@@ -46,6 +46,10 @@ A modern full-stack application for creating and managing code snippets with AI-
 
 - **Snippet Management**: Create, store, and retrieve code snippets with syntax highlighting
 - **AI-Powered Summarization**: Automatic text summarization using Google Gemini or OpenAI
+- **User Authentication**: Secure registration and login with JWT tokens and bcrypt password hashing
+- **Role-Based Access Control**: Multi-tier user system (user/moderator/admin) with different permissions
+- **User Management**: Admin interface for managing user roles and permissions
+- **Analytics & Reporting**: Admin dashboard with user activity reports and snippet statistics
 - **Modern Frontend**: React Router v7 with server-side rendering and dark/light theme
 - **Full Accessibility**: Comprehensive a11y features with keyboard navigation
 - **Type-Safe**: End-to-end TypeScript with shared type definitions
@@ -68,21 +72,29 @@ hn-challenge/
 ### Backend
 
 - **Express.js** with TypeScript and ES modules
-- **MongoDB** for data persistence
+- **MongoDB** for data persistence with dual collections (snippets & users)
+- **Authentication System** with JWT tokens, bcrypt password hashing, and middleware protection
+- **Role-Based Access Control** supporting user, moderator, and admin roles
 - **AI Integration** with Google Gemini (primary) and OpenAI (fallback)
-- **Vitest** for testing with comprehensive coverage
+- **Comprehensive API** with endpoints for auth, snippets, user management, and reporting
+- **Vitest** for testing with comprehensive coverage including integration tests
 
 ### Frontend
 
 - **React Router v7** with file-based routing and SSR
+- **Authentication Context** with protected routes and session management
+- **Multi-page Application** with auth, snippets, config, and reporting interfaces
 - **Vite** for fast development and optimized builds
 - **Tailwind CSS** for styling with custom theme system
-- **Comprehensive accessibility** features
+- **Comprehensive accessibility** features and form handling
+- **Admin Interfaces** for user management and analytics dashboards
 
 ### Shared Package
 
 - Common TypeScript interfaces and utilities
-- Shared between frontend and backend for type safety
+- **Authentication Types**: User, JWT payload, and auth request/response interfaces
+- **API Contracts**: Shared types for snippets, users, and administrative operations
+- Shared between frontend and backend for end-to-end type safety
 
 ## 🚀 Quick Start
 
@@ -117,9 +129,11 @@ hn-challenge/
    Configure your `.env` file with:
 
    ```env
-   MONGODB_URI_DEV=mongodb://localhost:27017/hn-challenge
+   MONGODB_URI_DEV=mongodb://localhost:27017/hn-challenge-dev
+   MONGODB_URI_PROD=mongodb://localhost:27017/hn-challenge-prod
+   JWT_SECRET=your_jwt_secret_key_for_development
 
-   # Provide at least one of those
+   # Provide at least one of those for AI summarization
    GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_key
    OPENAI_API_KEY=your_openai_key
    ```
@@ -199,9 +213,14 @@ cd apps/frontend && pnpm test
 **Backend** (`apps/backend/.env`):
 
 ```env
+# Database Configuration
 MONGODB_URI_DEV=mongodb://localhost:27017/hn-challenge-dev
-MONGODB_URI_PROD=mongodb://localhost:27017/hn-challenge
-# Provide at least one of those
+MONGODB_URI_PROD=mongodb://localhost:27017/hn-challenge-prod
+
+# Authentication (required for user registration/login)
+JWT_SECRET=your-secure-jwt-secret-key-here
+
+# AI Integration (provide at least one for summarization features)
 GOOGLE_GENERATIVE_AI_API_KEY=your_key_here
 OPENAI_API_KEY=your_key_here
 ```
@@ -313,25 +332,38 @@ hn-challenge/
 ├── apps/
 │   ├── backend/
 │   │   ├── src/
-│   │   │   ├── controllers/     # HTTP request handlers
-│   │   │   ├── services/        # Business logic
-│   │   │   ├── repositories/    # Data access layer
-│   │   │   └── __tests__/       # Test files
+│   │   │   ├── controllers/     # HTTP request handlers (auth, snippets, config, reports)
+│   │   │   ├── services/        # Business logic (AI, snippets)
+│   │   │   ├── repositories/    # Data access layer (MongoDB snippets & users)
+│   │   │   ├── middleware/      # Auth middleware and error handling
+│   │   │   ├── models/          # TypeScript models (User, Snippet)
+│   │   │   ├── utils/           # Validation and error utilities
+│   │   │   ├── config/          # Database and environment configuration
+│   │   │   └── __tests__/       # Integration and unit test files
 │   │   └── package.json
 │   ├── frontend/
 │   │   ├── app/
-│   │   │   ├── routes/          # File-based routing
-│   │   │   ├── components/      # React components
-│   │   │   └── __tests__/       # Test files
+│   │   │   ├── routes/          # File-based routing (auth, config, report, snippets)
+│   │   │   ├── components/      # React components and UI library
+│   │   │   ├── contexts/        # Auth and theme context providers  
+│   │   │   ├── services/        # API service layer
+│   │   │   ├── server/          # Server-side utilities (session, snippets)
+│   │   │   ├── lib/             # Client utilities (API, cookies, storage)
+│   │   │   ├── hooks/           # Custom React hooks
+│   │   │   └── __tests__/       # Component and integration test files
 │   │   └── package.json
 ├── packages/
 │   └── shared/
 │       ├── src/
-│       │   ├── types/           # Shared TypeScript types
-│       │   └── utils/           # Common utilities
+│       │   ├── types/           # Shared TypeScript types (User, Auth, Snippet, API)
+│       │   └── utils/           # Common utilities (sanitization)
 │       └── package.json
-├── docker/                      # Docker configuration
-├── docker-compose.yml
+├── docker/                      # Docker configuration with health checks
+│   ├── DOCKER.md               # Docker documentation
+│   ├── Dockerfile              # Multi-stage build for backend & frontend
+│   ├── docker-compose.yml      # Services: MongoDB, Backend, Frontend
+│   └── mongo-init.js           # MongoDB initialization
+├── scripts/                     # Build and utility scripts
 └── package.json                 # Workspace configuration
 ```
 
@@ -345,30 +377,42 @@ hn-challenge/
 
 ## 🔄 Post-challenge reflection
 
+### Current Implementation Status
+
+**✅ Completed Features:**
+
+- **Authentication & Authorization**: JWT-based auth with role-based access control (user/moderator/admin)
+- **User Management**: Complete CRUD operations for user accounts with role management
+- **Admin Dashboard**: Analytics and reporting interface for administrators
+- **Security**: Password hashing with bcrypt, protected routes, and middleware validation
+- **Multi-page Application**: Auth flows, snippet management, configuration, and reporting pages
+
 ### Future Improvements
 
 **Performance Optimization:**
 
-- Implement caching layer (Redis) for frequently accessed snippets
-- Add database indexing and query optimization
+- Implement caching layer (Redis) for frequently accessed snippets and user sessions
+- Add database indexing and query optimization for user and snippet collections
 - Implement CDN for static assets and image optimization
-- Add pagination for large snippet collections
+- Add pagination for large snippet and user collections
 
 **Enhanced Features:**
 
-- User authentication and authorization
-- Snippet versioning and revision history
-- Real-time collaboration with WebSocket integration
-- Advanced search with full-text indexing and filtering
-- Schema validation (zod)
+- **Advanced RBAC**: More granular permissions and resource-based access control
+- **Snippet versioning and revision history** with diff viewing
+- **Real-time collaboration** with WebSocket integration for live editing
+- **Advanced search** with full-text indexing, filtering, and user-scoped search
+- **Schema validation** (zod) for robust API input validation
+- **Audit logging** for administrative actions and security events
 
 **Production Readiness:**
 
-- Comprehensive logging and monitoring
-- Rate limiting and DDoS protection
+- Comprehensive logging and monitoring with structured logs
+- Rate limiting and DDoS protection per user/IP
 - Database migrations and backup strategies
 - CI/CD pipeline with automated testing and deployment
 - Load balancing and horizontal scaling configuration
+- **Session management** improvements with refresh tokens
 
 **Developer Experience:**
 
@@ -381,18 +425,23 @@ hn-challenge/
 
 **Architecture Decisions:**
 
-- **MongoDB over relational DB**: Chosen for flexibility and rapid development, but lacks strong schema enforcement and ACID transactions across collections
+- **MongoDB over relational DB**: Chosen for flexibility and rapid development, but lacks strong schema enforcement and ACID transactions across collections. Authentication implementation works well with document-based user profiles.
+- **JWT tokens**: Stateless authentication scales well but requires careful secret management and doesn't support easy token revocation
+- **Role-based access control**: Simple three-tier system (user/moderator/admin) provides good security boundaries without over-complicating the authorization logic
 - **Dual AI providers**: Increases complexity but provides fallback reliability when API services are unavailable
-- **Monorepo structure**: Better code sharing but longer CI/CD pipelines and more complex dependency management
+- **Monorepo structure**: Better code sharing (especially for auth types) but longer CI/CD pipelines and more complex dependency management
 
 **Performance vs Development Speed:**
 
-- **Server-side rendering**: Improves initial load times but might add complexity to state management
-- **TypeScript strict mode**: Better type safety but more verbose code and longer compile times
+- **Server-side rendering**: Improves initial load times but adds complexity to auth state management across client/server boundaries
+- **TypeScript strict mode**: Better type safety (critical for auth flows) but more verbose code and longer compile times
+- **Bcrypt password hashing**: Secure but computationally expensive; could benefit from async queuing in high-load scenarios
 
 **Security vs Convenience:**
 
-- **Environment-based config**: Simple setup but requires manual secret management
+- **Environment-based config**: Simple setup but requires manual secret management for JWT secrets and API keys
+- **Role-based middleware**: Provides good protection but could be more granular for complex permission scenarios
+- **Client-side auth state**: Convenient for UX but requires careful handling of token expiration and refresh flows
 
 ## 🤝 Contributing
 
