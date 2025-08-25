@@ -5,8 +5,8 @@ import { AppHeader } from '../components/app-header'
 import { useAuth } from '../contexts/auth-context'
 import { Snippet } from '@hn-challenge/shared'
 import type { LoaderFunctionArgs } from 'react-router'
-import { validateSession } from '~/server/session.server'
-import { getSnippets } from '~/server/snippets.server'
+import { validateSession } from '../server/session.server'
+import { getSnippets } from '../server/snippets.server'
 
 interface LoaderData {
   snippets: Snippet[]
