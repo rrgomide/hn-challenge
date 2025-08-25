@@ -25,7 +25,8 @@ export function errorHandler(
 
   // Handle MongoDB duplicate key errors
   if (err.name === 'MongoError' && 'code' in err && (err as { code: number }).code === 11000) {
-    const field = Object.keys((err as { keyValue: Record<string, unknown> }).keyValue)[0]
+    const mongoError = err as Error & { keyValue?: Record<string, unknown> }
+    const field = mongoError.keyValue ? Object.keys(mongoError.keyValue)[0] : 'field'
     res.status(409).json({ error: `${field} already exists` })
     return
   }

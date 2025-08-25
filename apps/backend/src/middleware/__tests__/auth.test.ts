@@ -1,4 +1,11 @@
-import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  type MockedFunction,
+} from 'vitest'
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { authMiddleware, requireRole } from '../auth.js'
@@ -26,14 +33,16 @@ describe('authMiddleware', () => {
   let mockJson: MockedFunction<(body: unknown) => Response>
 
   beforeEach(() => {
-    mockStatus = vi.fn().mockReturnThis() as MockedFunction<(code: number) => Response>
+    mockStatus = vi.fn().mockReturnThis() as MockedFunction<
+      (code: number) => Response
+    >
     mockJson = vi.fn() as MockedFunction<(body: unknown) => Response>
     mockRequest = {
-      headers: {}
+      headers: {},
     }
     mockResponse = {
       status: mockStatus,
-      json: mockJson
+      json: mockJson,
     }
     mockNext = vi.fn() as unknown as NextFunction
     vi.clearAllMocks()
@@ -41,7 +50,7 @@ describe('authMiddleware', () => {
 
   it('should return 401 when no authorization header is provided', async () => {
     authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
-    
+
     expect(mockNext).toHaveBeenCalled()
     expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
     expect(mockStatus).not.toHaveBeenCalled()
@@ -49,9 +58,9 @@ describe('authMiddleware', () => {
 
   it('should return 401 when authorization header is malformed (no Bearer prefix)', async () => {
     mockRequest.headers = { authorization: 'invalid-token' }
-    
+
     authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
-    
+
     expect(mockNext).toHaveBeenCalled()
     expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
     expect(mockStatus).not.toHaveBeenCalled()
@@ -62,9 +71,9 @@ describe('authMiddleware', () => {
     vi.mocked(jwt.verify).mockImplementation(() => {
       throw new Error('Invalid token')
     })
-    
+
     authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
-    
+
     expect(mockNext).toHaveBeenCalled()
     expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
     expect(mockStatus).not.toHaveBeenCalled()
@@ -76,14 +85,14 @@ describe('authMiddleware', () => {
       username: 'testuser',
       role: 'user',
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600
+      exp: Math.floor(Date.now() / 1000) + 3600,
     }
-    
+
     mockRequest.headers = { authorization: 'Bearer valid-token' }
-    vi.mocked(jwt.verify).mockReturnValue(mockPayload)
-    
+    vi.mocked(jwt.verify).mockImplementation(() => mockPayload)
+
     authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
-    
+
     expect(jwt.verify).toHaveBeenCalledWith('valid-token', expect.any(String))
     expect(mockRequest.user).toEqual(mockPayload)
     expect(mockNext).toHaveBeenCalled()
@@ -98,9 +107,9 @@ describe('authMiddleware', () => {
     vi.mocked(jwt.verify).mockImplementation(() => {
       throw expiredError
     })
-    
+
     authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
-    
+
     expect(mockNext).toHaveBeenCalled()
     expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
     expect(mockStatus).not.toHaveBeenCalled()
@@ -113,9 +122,9 @@ describe('authMiddleware', () => {
     vi.mocked(jwt.verify).mockImplementation(() => {
       throw malformedError
     })
-    
+
     authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
-    
+
     expect(mockNext).toHaveBeenCalled()
     expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
     expect(mockStatus).not.toHaveBeenCalled()
@@ -130,12 +139,14 @@ describe('requireRole', () => {
   let mockJson: MockedFunction<(body: unknown) => Response>
 
   beforeEach(() => {
-    mockStatus = vi.fn().mockReturnThis() as MockedFunction<(code: number) => Response>
+    mockStatus = vi.fn().mockReturnThis() as MockedFunction<
+      (code: number) => Response
+    >
     mockJson = vi.fn() as MockedFunction<(body: unknown) => Response>
     mockRequest = {}
     mockResponse = {
       status: mockStatus,
-      json: mockJson
+      json: mockJson,
     }
     mockNext = vi.fn() as unknown as NextFunction
     vi.clearAllMocks()
@@ -143,9 +154,9 @@ describe('requireRole', () => {
 
   it('should return 401 when user is not attached to request', () => {
     const middleware = requireRole(['admin'])
-    
+
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
-    
+
     expect(mockNext).toHaveBeenCalled()
     expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
     expect(mockStatus).not.toHaveBeenCalled()
@@ -157,14 +168,14 @@ describe('requireRole', () => {
       username: 'testuser',
       role: 'user',
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600
+      exp: Math.floor(Date.now() / 1000) + 3600,
     }
-    
+
     mockRequest.user = mockUser
     const middleware = requireRole(['admin', 'moderator'])
-    
+
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
-    
+
     expect(mockNext).toHaveBeenCalled()
     expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
     expect(mockStatus).not.toHaveBeenCalled()
@@ -176,14 +187,14 @@ describe('requireRole', () => {
       username: 'adminuser',
       role: 'admin',
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600
+      exp: Math.floor(Date.now() / 1000) + 3600,
     }
-    
+
     mockRequest.user = mockUser
     const middleware = requireRole(['admin', 'moderator'])
-    
+
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
-    
+
     expect(mockNext).toHaveBeenCalled()
     expect(mockNext).toHaveBeenCalledWith()
     expect(mockStatus).not.toHaveBeenCalled()
@@ -195,14 +206,14 @@ describe('requireRole', () => {
       username: 'regularuser',
       role: 'user',
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600
+      exp: Math.floor(Date.now() / 1000) + 3600,
     }
-    
+
     mockRequest.user = mockUser
     const middleware = requireRole(['user'])
-    
+
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
-    
+
     expect(mockNext).toHaveBeenCalled()
     expect(mockNext).toHaveBeenCalledWith()
     expect(mockStatus).not.toHaveBeenCalled()
@@ -214,14 +225,14 @@ describe('requireRole', () => {
       username: 'moderator',
       role: 'moderator',
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600
+      exp: Math.floor(Date.now() / 1000) + 3600,
     }
-    
+
     mockRequest.user = mockUser
     const middleware = requireRole(['user', 'moderator'])
-    
+
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
-    
+
     expect(mockNext).toHaveBeenCalled()
     expect(mockNext).toHaveBeenCalledWith()
     expect(mockStatus).not.toHaveBeenCalled()

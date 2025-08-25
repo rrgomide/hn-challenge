@@ -20,10 +20,12 @@ const mockRepository = {
   async create(snippet: Partial<Snippet>) {
     const id = randomUUID()
     const now = new Date()
-    const fullSnippet = {
+    const fullSnippet: Snippet = {
       id,
-      text: snippet.text,
-      summary: snippet.summary,
+      text: snippet.text || '',
+      summary: snippet.summary || '',
+      ownerId: snippet.ownerId || '',
+      isPublic: snippet.isPublic || false,
       createdAt: now,
       updatedAt: now,
     }
@@ -36,15 +38,43 @@ const mockRepository = {
   async findAll() {
     return Array.from(this.snippets.values())
   },
-  async update(id: string, updates: Partial<Snippet>) {
+  async findByOwnerId(ownerId: string) {
+    return Array.from(this.snippets.values()).filter(snippet => 
+      snippet.ownerId === ownerId
+    )
+  },
+  async findPublic() {
+    return Array.from(this.snippets.values()).filter(snippet => 
+      snippet.isPublic === true
+    )
+  },
+  async findAccessible(userId: string, userRole: 'user' | 'moderator' | 'admin') {
+    return Array.from(this.snippets.values()).filter(snippet => {
+      return snippet.ownerId === userId || snippet.isPublic === true || userRole === 'admin'
+    })
+  },
+  async update(id: string, snippet: Snippet) {
     const existing = this.snippets.get(id)
     if (!existing) return null
-    const updated = { ...existing, ...updates }
-    this.snippets.set(id, updated)
-    return updated
+    this.snippets.set(id, snippet)
+    return snippet
   },
   async delete(id: string) {
     return this.snippets.delete(id)
+  },
+  async getSnippetCountsByUser() {
+    const counts: { [userId: string]: number } = {}
+    Array.from(this.snippets.values()).forEach(snippet => {
+      const ownerId = snippet.ownerId
+      if (ownerId) {
+        counts[ownerId] = (counts[ownerId] || 0) + 1
+      }
+    })
+    return Object.entries(counts).map(([userId, snippetCount]) => ({
+      userId,
+      username: `user-${userId}`,
+      snippetCount
+    }))
   },
 }
 
