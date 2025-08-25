@@ -33,8 +33,8 @@ RUN pnpm --filter @hn-challenge/frontend build
 # Backend production stage
 FROM node:20-alpine AS backend
 
-# Install pnpm
-RUN npm install -g pnpm@10.14.0
+# Install pnpm and curl for health checks
+RUN apk add --no-cache curl && npm install -g pnpm@10.14.0
 
 # Set working directory
 WORKDIR /app
@@ -63,8 +63,8 @@ CMD ["pnpm", "--filter", "@hn-challenge/backend", "start"]
 # Frontend production stage
 FROM node:20-alpine AS frontend
 
-# Install pnpm
-RUN npm install -g pnpm@10.14.0
+# Install pnpm and curl for health checks
+RUN apk add --no-cache curl && npm install -g pnpm@10.14.0
 
 # Set working directory
 WORKDIR /app

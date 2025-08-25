@@ -89,8 +89,7 @@ vi.mock('../config/database.js', () => ({
 }))
 
 import { defineControllers } from '../app.js'
-
-const JWT_SECRET = 'development-secret-key-change-in-production'
+import { config } from '../config/environment.js'
 
 describe('Authentication endpoints integration tests', () => {
   let app: Express
@@ -125,7 +124,7 @@ describe('Authentication endpoints integration tests', () => {
       expect(response.body.user).not.toHaveProperty('password')
 
       // Verify JWT token is valid
-      const decoded = jwt.verify(response.body.token, JWT_SECRET) as JWTPayload
+      const decoded = jwt.verify(response.body.token, config.jwtSecret) as JWTPayload
       expect(decoded.username).toBe('testuser')
       expect(decoded.role).toBe('user')
     })
@@ -248,7 +247,7 @@ describe('Authentication endpoints integration tests', () => {
       expect(response.body.user).not.toHaveProperty('password')
 
       // Verify JWT token
-      const decoded = jwt.verify(response.body.token, JWT_SECRET) as JWTPayload
+      const decoded = jwt.verify(response.body.token, config.jwtSecret) as JWTPayload
       expect(decoded.username).toBe('loginuser')
       expect(decoded.userId).toBe(testUser.id)
     })
@@ -304,7 +303,7 @@ describe('Authentication endpoints integration tests', () => {
 
       expect(response.body.user.role).toBe('admin')
 
-      const decoded = jwt.verify(response.body.token, JWT_SECRET) as JWTPayload
+      const decoded = jwt.verify(response.body.token, config.jwtSecret) as JWTPayload
       expect(decoded.role).toBe('admin')
     })
   })
@@ -324,7 +323,7 @@ describe('Authentication endpoints integration tests', () => {
         .expect(201)
 
       const token = response.body.token
-      const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
+      const decoded = jwt.verify(token, config.jwtSecret) as JWTPayload
 
       expect(decoded).toHaveProperty('userId')
       expect(decoded).toHaveProperty('username', 'tokentest')

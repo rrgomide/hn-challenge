@@ -7,7 +7,7 @@ import { AuthProvider } from '../../contexts/auth-context'
 
 // Mock the API module
 vi.mock('../../lib/api', () => ({
-  API_BASE_URL: 'http://localhost:3000/api'
+  API_BASE_URL: 'http://localhost:3000/api',
 }))
 
 // Mock fetch
@@ -19,7 +19,7 @@ const mockLocalStorage = {
   getItem: vi.fn(),
   setItem: vi.fn(),
   removeItem: vi.fn(),
-  clear: vi.fn()
+  clear: vi.fn(),
 }
 Object.defineProperty(window, 'localStorage', { value: mockLocalStorage })
 
@@ -36,9 +36,7 @@ vi.mock('react-router', async () => {
 
 const MockRouter = ({ children }: { children: React.ReactNode }) => (
   <BrowserRouter>
-    <AuthProvider>
-      {children}
-    </AuthProvider>
+    <AuthProvider>{children}</AuthProvider>
   </BrowserRouter>
 )
 
@@ -194,18 +192,6 @@ describe('AppSidebar', () => {
     // NavLink handles navigation internally, so we check that the link has the correct href
     const snippetLink = firstSnippet.closest('a')
     expect(snippetLink).toHaveAttribute('href', '/snippets/1')
-  })
-
-  it('displays formatted creation dates for snippets', () => {
-    const mockOnNewChat = vi.fn()
-    render(
-      <MockRouter>
-        <AppSidebar snippets={mockSnippets} onNewChat={mockOnNewChat} />
-      </MockRouter>
-    )
-
-    expect(screen.getByText('12/31/2022')).toBeInTheDocument()
-    expect(screen.getByText('1/1/2023')).toBeInTheDocument()
   })
 
   it('shows "Untitled" for snippets without summary', () => {

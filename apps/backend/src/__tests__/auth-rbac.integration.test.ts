@@ -146,11 +146,10 @@ vi.mock('../config/database.js', () => ({
 }))
 
 import { defineControllers } from '../app.js'
-
-const JWT_SECRET = 'development-secret-key-change-in-production'
+import { config } from '../config/environment.js'
 
 function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' })
+  return jwt.sign(payload, config.jwtSecret, { expiresIn: '1h' })
 }
 
 describe('Role-based access control integration tests', () => {
