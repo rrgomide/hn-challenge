@@ -1,19 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import {
-  Outlet,
-  useLoaderData,
-  useNavigate,
-  useLocation,
-  redirect,
-} from 'react-router'
+import { Outlet, useLoaderData, useLocation, redirect } from 'react-router'
 import { AppSidebar } from '../components/app-sidebar'
 import { AppHeader } from '../components/app-header'
 import { useAuth } from '../contexts/auth-context'
-import { Snippet, SnippetsResponse } from '@hn-challenge/shared'
-import { API_BASE_URL } from '../lib/api'
-import { getAuthFromCookies } from '../lib/cookies'
-import { apiClient } from '../lib/api-client'
+import { Snippet } from '@hn-challenge/shared'
 import type { LoaderFunctionArgs } from 'react-router'
+import { validateSession } from '~/server/session.server'
+import { getSnippets } from '~/server/snippets.server'
 
 interface LoaderData {
   snippets: Snippet[]
@@ -24,22 +17,21 @@ interface LoaderData {
 export async function loader({
   request,
 }: LoaderFunctionArgs): Promise<LoaderData> {
-  const cookieHeader = request.headers.get('Cookie')
-  const { token, user } = getAuthFromCookies(cookieHeader)
-
-  const url = new URL(request.url)
-  if (!token && url.pathname !== '/auth') {
-    throw redirect('/auth')
-  }
+  const { token, user } = validateSession(request)
 
   if (!token) {
     return { snippets: [], isAuthenticated: false, user: null }
   }
 
   try {
-    const result: SnippetsResponse = await apiClient.get('/snippets', token)
+    const { snippets, error } = await getSnippets(token)
+
+    if (error === 'Unauthorized') {
+      throw redirect('/auth')
+    }
+
     return {
-      snippets: result.data || [],
+      snippets,
       isAuthenticated: true,
       user,
     }
@@ -48,28 +40,7 @@ export async function loader({
     if (error instanceof Error && error.message.includes('401')) {
       throw redirect('/auth')
     }
-    return { snippets: [], isAuthenticated: !!token, user }
-  }
-}
-
-async function fetchSnippets(token?: string): Promise<{ snippets: Snippet[] }> {
-  try {
-    const headers: Record<string, string> = {}
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
-
-    const response = await fetch(`${API_BASE_URL}/snippets`, { headers })
-    if (response.ok) {
-      const result: SnippetsResponse = await response.json()
-      const snippets: Snippet[] = result.data
-      return { snippets }
-    }
-    return { snippets: [] }
-  } catch (error) {
-    console.error('Failed to fetch snippets:', error)
-    return { snippets: [] }
+    return { snippets: [], isAuthenticated: Boolean(token), user }
   }
 }
 
@@ -158,18 +129,6 @@ export default function Layout() {
   useEffect(() => {
     setSnippets(loaderSnippets)
   }, [loaderSnippets])
-
-  useEffect(() => {
-    if (contextAuthenticated && token && loaderSnippets.length === 0) {
-      fetchSnippets(token)
-        .then(({ snippets }) => {
-          setSnippets(snippets)
-        })
-        .catch((error: any) => {
-          console.error('Failed to load snippets:', error)
-        })
-    }
-  }, [contextAuthenticated, token, loaderSnippets.length])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

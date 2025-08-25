@@ -3,11 +3,16 @@ import { getAuthFromCookies } from '../lib/cookies'
 
 export function validateSession(request: Request) {
   const cookieHeader = request.headers.get('Cookie')
-  const { token } = getAuthFromCookies(cookieHeader)
+  const { token, user } = getAuthFromCookies(cookieHeader)
 
   if (!token) {
-    throw redirect('/auth')
+    const url = new URL(request.url)
+    if (url.pathname !== '/auth') {
+      throw redirect('/auth')
+    }
+
+    return { token: null, user: null }
   }
 
-  return token
+  return { token, user }
 }

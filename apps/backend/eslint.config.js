@@ -18,8 +18,8 @@ export default [
     },
     rules: {
       ...typescript.configs.recommended.rules,
-      '@typescript-eslint/no-unused-vars': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': 'on',
+      '@typescript-eslint/no-explicit-any': 'on',
     },
   },
 ]

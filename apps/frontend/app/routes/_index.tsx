@@ -20,17 +20,22 @@ import { cn } from '../lib/utils'
 import { validateSession } from '../server/session.server'
 
 export async function action({ request }: ActionFunctionArgs) {
-  const token = validateSession(request)
+  const { token } = validateSession(request)
+
+  if (!token) {
+    return { error: 'Unauthorized' }
+  }
+
   const formData = await request.formData()
   const text = formData.get('text') as string
   const mode = formData.get('mode') as 'batch' | 'stream'
-  const useStreaming = mode === 'stream'
+  const userChoseStreaming = mode === 'stream'
 
   if (!text?.trim()) {
     return { error: 'Text content is required' }
   }
 
-  if (useStreaming) {
+  if (userChoseStreaming) {
     return { error: 'Streaming should be handled client-side' }
   }
 
