@@ -3,7 +3,7 @@ import { defineConfig } from 'vite'
 
 export default defineConfig(({ command, mode }) => {
   const isTest = mode === 'test'
-  
+
   return {
     plugins: isTest ? [] : [reactRouter()],
     server: {
