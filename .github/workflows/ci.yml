@@ -160,9 +160,11 @@ jobs:
 
       - name: Test Docker Compose setup
         run: |
-          # Set environment variables for Docker Compose
-          export MONGODB_URI_PROD="mongodb://mongodb:27017/hn-challenge-prod"
-          export JWT_SECRET="test-secret-for-docker"
+          # Set environment variables for Docker Compose using GitHub Secrets
+          export MONGODB_URI_PROD="${{ secrets.MONGODB_URI_PROD }}"
+          export JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          export GOOGLE_GENERATIVE_AI_API_KEY="${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}"
+          export OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
           export NODE_ENV="production"
 
           # Clean up any existing containers first

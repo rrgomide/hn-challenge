@@ -27,8 +27,9 @@ function validateEnvironment(): Config {
     : process.env.MONGODB_URI_PROD
 
   // Allow tests to run without database configuration
-  const isTestEnvironment = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
-  
+  const isTestEnvironment =
+    process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'
+
   if (!mongoUri && !isTestEnvironment) {
     const requiredVar = isDevelopment ? 'MONGODB_URI_DEV' : 'MONGODB_URI_PROD'
     throw new Error(`${requiredVar} environment variable is required`)
@@ -42,7 +43,7 @@ function validateEnvironment(): Config {
 
   const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '24h'
 
-  return {
+  const allConfig = {
     port,
     nodeEnv,
     isDevelopment,
@@ -51,8 +52,11 @@ function validateEnvironment(): Config {
     jwtSecret: jwtSecret || 'development-secret-key-change-in-production',
     jwtExpiresIn,
     googleAiApiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    openaiApiKey: process.env.OPENAI_API_KEY
+    openaiApiKey: process.env.OPENAI_API_KEY,
   }
+  console.log('🔥 ~ allConfig:', { allConfig, env: process.env })
+
+  return allConfig
 }
 
 let _config: Config | null = null

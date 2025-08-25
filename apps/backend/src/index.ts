@@ -1,3 +1,5 @@
+import '@dotenvx/dotenvx/config'
+
 import { defineControllers } from './app.js'
 import { config } from './config/environment.js'
 
