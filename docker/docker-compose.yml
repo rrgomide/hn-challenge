@@ -4,8 +4,6 @@ services:
     container_name: hn-challenge-mongodb
     ports:
       - '27017:27017'
-    env_file:
-      - ../apps/backend/.env
     volumes:
       - mongodb_data:/data/db
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js
@@ -25,8 +23,13 @@ services:
     container_name: hn-challenge-backend
     ports:
       - '3000:3000'
-    env_file:
-      - ../apps/backend/.env
+    environment:
+      - PORT=${PORT:-3000}
+      - NODE_ENV=${NODE_ENV:-production}
+      - MONGODB_URI_PROD=${MONGODB_URI_PROD:-mongodb://mongodb:27017/hn-challenge-prod}
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_GENERATIVE_AI_API_KEY=${GOOGLE_GENERATIVE_AI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     restart: unless-stopped
     depends_on:
       mongodb:
@@ -47,8 +50,8 @@ services:
     ports:
       - '3030:3030'
     environment:
-      - PORT=3030
-      - NODE_ENV=production
+      - PORT=${PORT:-3030}
+      - NODE_ENV=${NODE_ENV:-production}
     restart: unless-stopped
     depends_on:
       backend:

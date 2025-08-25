@@ -72,28 +72,43 @@ The Docker setup is optimized for production with:
 
 ## Environment Configuration
 
-The Docker setup requires the following environment variables:
+### Local Development
 
-### Required
-- `JWT_SECRET`: Secret key for JWT token signing (critical for security)
-- `MONGODB_URI_PROD`: MongoDB connection string (defaults to `mongodb://mongodb:27017/hn-challenge-prod`)
+For local Docker development, create a `.env` file in the `docker/` directory:
 
-### Optional (for AI features)
-- `GOOGLE_GENERATIVE_AI_API_KEY`: Google Gemini API key
-- `OPENAI_API_KEY`: OpenAI API key
-
-### Example `.env` file:
-```env
-# Authentication (required)
-JWT_SECRET=your-super-secure-jwt-secret-for-production
-
-# Database (optional - has default)
-MONGODB_URI_PROD=mongodb://mongodb:27017/hn-challenge-prod
-
-# AI Integration (optional - provide at least one for summarization)
-GOOGLE_GENERATIVE_AI_API_KEY=your_google_key_here
-OPENAI_API_KEY=your_openai_key_here
+```bash
+cd docker
+cp .env.example .env
+# Edit .env with your actual values
 ```
+
+### CI/CD and Production
+
+The Docker setup works in two modes:
+
+1. **Local Development**: Uses `.env` file or `../apps/backend/.env` 
+2. **CI/CD**: Uses environment variables from the shell (GitHub Secrets, etc.)
+
+### Required Variables
+
+- `JWT_SECRET`: Secret key for JWT token signing (critical for security)
+- `GOOGLE_GENERATIVE_AI_API_KEY` or `OPENAI_API_KEY`: At least one AI API key
+
+### Optional Variables
+
+- `MONGODB_URI_PROD`: MongoDB connection string (defaults to `mongodb://mongodb:27017/hn-challenge-prod`)
+- `PORT`: Application port (defaults to 3000 for backend, 3030 for frontend)
+- `NODE_ENV`: Environment mode (defaults to `production`)
+
+### GitHub Actions Setup
+
+For CI/CD, configure these secrets in your GitHub repository:
+- `MONGODB_URI_PROD`
+- `JWT_SECRET` 
+- `GOOGLE_GENERATIVE_AI_API_KEY`
+- `OPENAI_API_KEY` (optional)
+
+Go to: Repository Settings → Secrets and variables → Actions → New repository secret
 
 ## Commands
 
