@@ -1,5 +1,5 @@
 export class LocalStorageManager {
-  static setItem(key: string, value: any): boolean {
+  static setItem(key: string, value: unknown): boolean {
     if (typeof window === 'undefined') return false
     
     try {

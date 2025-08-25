@@ -4,7 +4,7 @@ import { Express } from 'express'
 import { randomUUID } from 'crypto'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import { JWTPayload } from '@hn-challenge/shared'
+import { JWTPayload, CreateUserRequest, User, CreateSnippetRequest, Snippet } from '@hn-challenge/shared'
 
 // Mock the AI service module before any imports
 const mockSummarizeText = vi.fn()
@@ -18,7 +18,7 @@ vi.mock('../services/ai-service.js', () => ({
 // Mock user repository for testing
 const mockUserRepository = {
   users: new Map(),
-  async create(user: any) {
+  async create(user: CreateUserRequest) {
     const id = randomUUID()
     const now = new Date()
     const hashedPassword = await bcrypt.hash(user.password, 10)
@@ -53,14 +53,14 @@ const mockUserRepository = {
       updatedAt: user.updatedAt,
     }))
   },
-  async update(id: string, updates: any) {
+  async update(id: string, updates: Partial<User>) {
     const existing = this.users.get(id)
     if (!existing) return null
     const updated = { ...existing, ...updates }
     this.users.set(id, updated)
     
     // Return user without password (matching real repository behavior)
-    const { password, ...userWithoutPassword } = updated
+    const { password: _password, ...userWithoutPassword } = updated
     return userWithoutPassword
   },
   async delete(id: string) {
@@ -71,7 +71,7 @@ const mockUserRepository = {
 // Mock snippet repository
 const mockSnippetRepository = {
   snippets: new Map(),
-  async create(snippet: any) {
+  async create(snippet: CreateSnippetRequest & { ownerId: string, summary: string }) {
     const id = randomUUID()
     const now = new Date()
     const fullSnippet = {
@@ -105,7 +105,7 @@ const mockSnippetRepository = {
     }
     return all.filter(s => s.ownerId === userId || s.isPublic)
   },
-  async update(id: string, updates: any) {
+  async update(id: string, updates: Partial<Snippet>) {
     const existing = this.snippets.get(id)
     if (!existing) return null
     const updated = { ...existing, ...updates }
@@ -153,7 +153,7 @@ describe('Config endpoints integration tests', () => {
   let adminToken: string
   let userId: string
   let moderatorId: string
-  let adminId: string
+  let _adminId: string
 
   beforeAll(async () => {
     app = await defineControllers()
@@ -186,7 +186,7 @@ describe('Config endpoints integration tests', () => {
       password: 'password123', 
       role: 'admin'
     })
-    adminId = admin.id
+    _adminId = admin.id
     adminToken = generateToken({ userId: admin.id, username: admin.username, role: admin.role })
   })
 
@@ -206,7 +206,7 @@ describe('Config endpoints integration tests', () => {
       expect(response.body.users).toHaveLength(3)
       
       // Check that no passwords are returned
-      response.body.users.forEach((user: any) => {
+      response.body.users.forEach((user: User) => {
         expect(user).not.toHaveProperty('password')
         expect(user).toHaveProperty('id')
         expect(user).toHaveProperty('username')
@@ -217,7 +217,7 @@ describe('Config endpoints integration tests', () => {
       })
 
       // Check that all test users are included
-      const usernames = response.body.users.map((u: any) => u.username)
+      const usernames = response.body.users.map((u: User) => u.username)
       expect(usernames).toContain('testuser')
       expect(usernames).toContain('moderator')
       expect(usernames).toContain('admin')

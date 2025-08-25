@@ -3,7 +3,7 @@ import { Outlet, useLoaderData, useLocation, redirect } from 'react-router'
 import { AppSidebar } from '../components/app-sidebar'
 import { AppHeader } from '../components/app-header'
 import { useAuth } from '../contexts/auth-context'
-import { Snippet } from '@hn-challenge/shared'
+import { Snippet, User } from '@hn-challenge/shared'
 import type { LoaderFunctionArgs } from 'react-router'
 import { validateSession } from '../server/session.server'
 import { getSnippets } from '../server/snippets.server'
@@ -11,7 +11,7 @@ import { getSnippets } from '../server/snippets.server'
 interface LoaderData {
   snippets: Snippet[]
   isAuthenticated: boolean
-  user: any | null
+  user: User | null
 }
 
 export async function loader({
@@ -111,14 +111,14 @@ function AppBodyWrapper({ children }: { children: React.ReactNode }) {
 export default function Layout() {
   const { snippets: loaderSnippets, isAuthenticated: loaderAuthenticated } =
     useLoaderData<typeof loader>()
-  const [mounted, setMounted] = useState(false)
+  const [_mounted, setMounted] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [snippets, setSnippets] = useState<Snippet[]>(loaderSnippets)
-  const { isAuthenticated: contextAuthenticated, isLoading, token } = useAuth()
+  const { isAuthenticated: contextAuthenticated, isLoading, token: _token } = useAuth()
   const location = useLocation()
   const sidebarRef = useRef<HTMLDivElement>(null)
 
-  const isAuthenticated = loaderAuthenticated || contextAuthenticated
+  const _isAuthenticated = loaderAuthenticated || contextAuthenticated
 
   const shouldHideSidebar = location.pathname === '/config'
 

@@ -1,22 +1,33 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest'
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { authMiddleware, requireRole } from '../auth.js'
 import { JWTPayload } from '@hn-challenge/shared'
 
+// Define interfaces for properly typed mocks
+interface MockRequest extends Partial<Request> {
+  headers?: Record<string, string | undefined>
+  user?: JWTPayload
+}
+
+interface MockResponse extends Partial<Response> {
+  status: MockedFunction<(code: number) => Response>
+  json: MockedFunction<(body: unknown) => Response>
+}
+
 // Mock JWT
 vi.mock('jsonwebtoken')
 
 describe('authMiddleware', () => {
-  let mockRequest: Partial<Request>
-  let mockResponse: Partial<Response>
+  let mockRequest: MockRequest
+  let mockResponse: MockResponse
   let mockNext: NextFunction
-  let mockStatus: any
-  let mockJson: any
+  let mockStatus: MockedFunction<(code: number) => Response>
+  let mockJson: MockedFunction<(body: unknown) => Response>
 
   beforeEach(() => {
-    mockStatus = vi.fn().mockReturnThis()
-    mockJson = vi.fn()
+    mockStatus = vi.fn().mockReturnThis() as MockedFunction<(code: number) => Response>
+    mockJson = vi.fn() as MockedFunction<(body: unknown) => Response>
     mockRequest = {
       headers: {}
     }
@@ -24,7 +35,7 @@ describe('authMiddleware', () => {
       status: mockStatus,
       json: mockJson
     }
-    mockNext = vi.fn() as any
+    mockNext = vi.fn() as unknown as NextFunction
     vi.clearAllMocks()
   })
 
@@ -69,12 +80,12 @@ describe('authMiddleware', () => {
     }
     
     mockRequest.headers = { authorization: 'Bearer valid-token' }
-    vi.mocked(jwt.verify).mockReturnValue(mockPayload as any)
+    vi.mocked(jwt.verify).mockReturnValue(mockPayload)
     
     authMiddleware(mockRequest as Request, mockResponse as Response, mockNext)
     
     expect(jwt.verify).toHaveBeenCalledWith('valid-token', expect.any(String))
-    expect((mockRequest as any).user).toEqual(mockPayload)
+    expect(mockRequest.user).toEqual(mockPayload)
     expect(mockNext).toHaveBeenCalled()
     expect(mockNext).toHaveBeenCalledWith()
     expect(mockStatus).not.toHaveBeenCalled()
@@ -112,21 +123,21 @@ describe('authMiddleware', () => {
 })
 
 describe('requireRole', () => {
-  let mockRequest: Partial<Request>
-  let mockResponse: Partial<Response>
+  let mockRequest: MockRequest
+  let mockResponse: MockResponse
   let mockNext: NextFunction
-  let mockStatus: any
-  let mockJson: any
+  let mockStatus: MockedFunction<(code: number) => Response>
+  let mockJson: MockedFunction<(body: unknown) => Response>
 
   beforeEach(() => {
-    mockStatus = vi.fn().mockReturnThis()
-    mockJson = vi.fn()
+    mockStatus = vi.fn().mockReturnThis() as MockedFunction<(code: number) => Response>
+    mockJson = vi.fn() as MockedFunction<(body: unknown) => Response>
     mockRequest = {}
     mockResponse = {
       status: mockStatus,
       json: mockJson
     }
-    mockNext = vi.fn() as any
+    mockNext = vi.fn() as unknown as NextFunction
     vi.clearAllMocks()
   })
 
@@ -149,7 +160,7 @@ describe('requireRole', () => {
       exp: Math.floor(Date.now() / 1000) + 3600
     }
     
-    ;(mockRequest as any).user = mockUser
+    mockRequest.user = mockUser
     const middleware = requireRole(['admin', 'moderator'])
     
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
@@ -168,7 +179,7 @@ describe('requireRole', () => {
       exp: Math.floor(Date.now() / 1000) + 3600
     }
     
-    ;(mockRequest as any).user = mockUser
+    mockRequest.user = mockUser
     const middleware = requireRole(['admin', 'moderator'])
     
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
@@ -187,7 +198,7 @@ describe('requireRole', () => {
       exp: Math.floor(Date.now() / 1000) + 3600
     }
     
-    ;(mockRequest as any).user = mockUser
+    mockRequest.user = mockUser
     const middleware = requireRole(['user'])
     
     middleware(mockRequest as Request, mockResponse as Response, mockNext)
@@ -206,7 +217,7 @@ describe('requireRole', () => {
       exp: Math.floor(Date.now() / 1000) + 3600
     }
     
-    ;(mockRequest as any).user = mockUser
+    mockRequest.user = mockUser
     const middleware = requireRole(['user', 'moderator'])
     
     middleware(mockRequest as Request, mockResponse as Response, mockNext)

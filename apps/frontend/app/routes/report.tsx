@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, redirect } from 'react-router'
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate, redirect as _redirect } from 'react-router'
 import { useAuth } from '../contexts/auth-context'
 import { apiClient } from '../lib/api-client'
 import { ScrollArea } from '../components/ui/scroll-area'
 import { Button } from '../components/ui/button'
-import { BarChart3, Users, FileText, Calendar } from 'lucide-react'
+import { BarChart3, Users, FileText, Calendar as _Calendar } from 'lucide-react'
 import type { LoaderFunctionArgs } from 'react-router'
 
 interface UserSnippetCount {
@@ -20,7 +20,7 @@ interface ReportData {
   totalSnippets: number
 }
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request: _request }: LoaderFunctionArgs) {
   // Server-side admin check would go here if needed
   // For now, we'll handle admin check on client side
   return {}
@@ -40,6 +40,21 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const loadReportData = useCallback(async () => {
+    if (!token) return
+
+    try {
+      setLoading(true)
+      const data: ReportData = await apiClient.get('/report', token)
+      setReport(data)
+    } catch (error: unknown) {
+      console.error('Failed to load report:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load report data')
+    } finally {
+      setLoading(false)
+    }
+  }, [token])
+
   useEffect(() => {
     // Check if user is admin
     if (!user) {
@@ -53,22 +68,7 @@ export default function ReportPage() {
     }
 
     loadReportData()
-  }, [user, token, navigate])
-
-  const loadReportData = async () => {
-    if (!token) return
-
-    try {
-      setLoading(true)
-      const data: ReportData = await apiClient.get('/report', token)
-      setReport(data)
-    } catch (error: any) {
-      console.error('Failed to load report:', error)
-      setError(error.message || 'Failed to load report data')
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [user, token, navigate, loadReportData])
 
   const refreshReport = () => {
     setError(null)

@@ -4,7 +4,7 @@
  * @returns The sanitized text
  */
 export function sanitizeJsonString(text: string): string {
-  return text.replace(/["\\\/\b\f\n\r\t]/g, function (match) {
+  return text.replace(/["\\/\b\f\n\r\t]/g, function (match: string) {
     switch (match) {
       case '"':
         return '\\"'

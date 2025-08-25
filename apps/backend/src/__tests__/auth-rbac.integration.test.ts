@@ -4,7 +4,7 @@ import { Express } from 'express'
 import { randomUUID } from 'crypto'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import { JWTPayload } from '@hn-challenge/shared'
+import { JWTPayload, User, CreateUserRequest, Snippet, CreateSnippetRequest, UserRole } from '@hn-challenge/shared'
 
 // Mock the AI service module before any imports
 const mockSummarizeText = vi.fn()
@@ -15,10 +15,30 @@ vi.mock('../services/ai-service.js', () => ({
   }),
 }))
 
+// Types for mock repositories
+interface MockUser extends User {
+  password: string
+}
+
+interface UserUpdateData {
+  username?: string
+  email?: string
+  password?: string
+  role?: UserRole
+  updatedAt?: Date
+}
+
+interface SnippetUpdateData {
+  text?: string
+  summary?: string
+  isPublic?: boolean
+  updatedAt?: Date
+}
+
 // Mock user repository for testing
 const mockUserRepository = {
-  users: new Map(),
-  async create(user: any) {
+  users: new Map<string, MockUser>(),
+  async create(user: CreateUserRequest): Promise<MockUser> {
     const id = randomUUID()
     const now = new Date()
     const hashedPassword = await bcrypt.hash(user.password, 10)
@@ -43,7 +63,7 @@ const mockUserRepository = {
   async findById(id: string) {
     return this.users.get(id) || null
   },
-  async update(id: string, updates: any) {
+  async update(id: string, updates: UserUpdateData): Promise<MockUser | null> {
     const existing = this.users.get(id)
     if (!existing) return null
     const updated = { ...existing, ...updates }
@@ -57,14 +77,14 @@ const mockUserRepository = {
 
 // Mock snippet repository with ownership support
 const mockSnippetRepository = {
-  snippets: new Map(),
-  async create(snippet: any) {
+  snippets: new Map<string, Snippet>(),
+  async create(snippet: CreateSnippetRequest & { ownerId: string; summary?: string }): Promise<Snippet> {
     const id = randomUUID()
     const now = new Date()
-    const fullSnippet = {
+    const fullSnippet: Snippet = {
       id,
       text: snippet.text,
-      summary: snippet.summary,
+      summary: snippet.summary || 'Default summary',
       ownerId: snippet.ownerId,
       isPublic: snippet.isPublic || false,
       createdAt: now,
@@ -92,7 +112,7 @@ const mockSnippetRepository = {
     }
     return all.filter(s => s.ownerId === userId || s.isPublic)
   },
-  async update(id: string, updates: any) {
+  async update(id: string, updates: SnippetUpdateData): Promise<Snippet | null> {
     const existing = this.snippets.get(id)
     if (!existing) return null
     const updated = { ...existing, ...updates }
@@ -140,7 +160,7 @@ describe('Role-based access control integration tests', () => {
   let adminToken: string
   let userId: string
   let moderatorId: string
-  let adminId: string
+  let _adminId: string
 
   beforeAll(async () => {
     app = await defineControllers()
@@ -173,7 +193,7 @@ describe('Role-based access control integration tests', () => {
       password: 'password123', 
       role: 'admin'
     })
-    adminId = admin.id
+    _adminId = admin.id
     adminToken = generateToken({ userId: admin.id, username: admin.username, role: admin.role })
   })
 
@@ -218,9 +238,9 @@ describe('Role-based access control integration tests', () => {
   })
 
   describe('Snippet retrieval with role-based access', () => {
-    let userPrivateSnippet: any
-    let userPublicSnippet: any
-    let moderatorSnippet: any
+    let userPrivateSnippet: Snippet
+    let userPublicSnippet: Snippet
+    let moderatorSnippet: Snippet
 
     beforeEach(async () => {
       mockSnippetRepository.snippets.clear()
@@ -328,7 +348,7 @@ describe('Role-based access control integration tests', () => {
         .expect(200)
 
       expect(response.body.data).toHaveLength(2) // Own private + own public
-      expect(response.body.data.every((s: any) => s.ownerId === userId || s.isPublic)).toBe(true)
+      expect(response.body.data.every((s: Snippet) => s.ownerId === userId || s.isPublic)).toBe(true)
     })
 
     it('should return all snippets for moderator', async () => {
@@ -351,8 +371,8 @@ describe('Role-based access control integration tests', () => {
   })
 
   describe('Snippet modification permissions', () => {
-    let userSnippet: any
-    let moderatorSnippet: any
+    let userSnippet: Snippet
+    let moderatorSnippet: Snippet
 
     beforeEach(async () => {
       mockSnippetRepository.snippets.clear()

@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { AuthForms } from '../auth-forms'
 import { AuthProvider } from '../../contexts/auth-context'
-import { act } from 'react'
+import { act as _act } from 'react'
 import type { UserRole } from '@hn-challenge/shared'
 
 // Mock the auth service

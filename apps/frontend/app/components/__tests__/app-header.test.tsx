@@ -3,10 +3,11 @@ import { userEvent } from '@testing-library/user-event'
 import { AppHeader } from '../app-header'
 import { AuthProvider } from '../../contexts/auth-context'
 import { MemoryRouter } from 'react-router'
+import { vi } from 'vitest'
 
 // Mock the API module
 vi.mock('../../lib/api', () => ({
-  API_BASE_URL: 'http://localhost:3000/api'
+  API_BASE_URL: 'http://localhost:3000/api',
 }))
 
 // Mock fetch
@@ -18,7 +19,7 @@ const mockLocalStorage = {
   getItem: vi.fn(),
   setItem: vi.fn(),
   removeItem: vi.fn(),
-  clear: vi.fn()
+  clear: vi.fn(),
 }
 Object.defineProperty(window, 'localStorage', { value: mockLocalStorage })
 
@@ -26,9 +27,7 @@ Object.defineProperty(window, 'localStorage', { value: mockLocalStorage })
 function AppHeaderWrapper({ children }: { children: React.ReactNode }) {
   return (
     <MemoryRouter>
-      <AuthProvider>
-        {children}
-      </AuthProvider>
+      <AuthProvider>{children}</AuthProvider>
     </MemoryRouter>
   )
 }
@@ -56,7 +55,7 @@ describe('AppHeader', () => {
         <AppHeader />
       </AppHeaderWrapper>
     )
-    
+
     await screen.findByText('Snippet Summarizer')
     expect(screen.getByLabelText('Toggle theme')).toBeInTheDocument()
   })
@@ -68,7 +67,7 @@ describe('AppHeader', () => {
         <AppHeader onToggleSidebar={mockToggleSidebar} />
       </AppHeaderWrapper>
     )
-    
+
     await screen.findByText('Snippet Summarizer')
     expect(screen.getByLabelText('Toggle sidebar')).toBeInTheDocument()
   })
@@ -79,7 +78,7 @@ describe('AppHeader', () => {
         <AppHeader />
       </AppHeaderWrapper>
     )
-    
+
     await screen.findByText('Snippet Summarizer')
     expect(screen.queryByLabelText('Toggle sidebar')).not.toBeInTheDocument()
   })
@@ -91,10 +90,10 @@ describe('AppHeader', () => {
         <AppHeader />
       </AppHeaderWrapper>
     )
-    
+
     await screen.findByText('Snippet Summarizer')
     const themeToggle = screen.getByLabelText('Toggle theme')
-    
+
     // Just verify it's clickable without errors
     await user.click(themeToggle)
     expect(themeToggle).toBeInTheDocument()
@@ -108,11 +107,11 @@ describe('AppHeader', () => {
         <AppHeader onToggleSidebar={mockToggleSidebar} />
       </AppHeaderWrapper>
     )
-    
+
     await screen.findByText('Snippet Summarizer')
     const sidebarToggle = screen.getByLabelText('Toggle sidebar')
     await user.click(sidebarToggle)
-    
+
     expect(mockToggleSidebar).toHaveBeenCalledTimes(1)
   })
 
@@ -123,7 +122,7 @@ describe('AppHeader', () => {
         <AppHeader onToggleSidebar={mockToggleSidebar} />
       </AppHeaderWrapper>
     )
-    
+
     await screen.findByText('Snippet Summarizer')
     expect(screen.getByLabelText('Toggle theme')).toBeInTheDocument()
     expect(screen.getByLabelText('Toggle sidebar')).toBeInTheDocument()
@@ -135,12 +134,17 @@ describe('AppHeader', () => {
         <AppHeader />
       </AppHeaderWrapper>
     )
-    
+
     await screen.findByText('Snippet Summarizer')
     const header = container.querySelector('header')
-    
+
     expect(header).toBeInTheDocument()
-    expect(header).toHaveClass('border-b', 'border-border', 'bg-background/95', 'backdrop-blur')
+    expect(header).toHaveClass(
+      'border-b',
+      'border-border',
+      'bg-background/95',
+      'backdrop-blur'
+    )
   })
 
   describe('user authentication display', () => {
@@ -148,12 +152,11 @@ describe('AppHeader', () => {
       const mockUser = { id: '1', username: 'testuser', role: 'user' }
       const mockToken = 'valid-jwt-token'
 
-      mockLocalStorage.getItem
-        .mockImplementation((key) => {
-          if (key === 'auth_token') return mockToken
-          if (key === 'auth_user') return JSON.stringify(mockUser)
-          return null
-        })
+      mockLocalStorage.getItem.mockImplementation(key => {
+        if (key === 'auth_token') return mockToken
+        if (key === 'auth_user') return JSON.stringify(mockUser)
+        return null
+      })
 
       render(
         <AppHeaderWrapper>
@@ -162,10 +165,13 @@ describe('AppHeader', () => {
       )
 
       // Wait for AuthProvider to load auth data
-      await waitFor(() => {
-        expect(screen.queryByText('testuser')).toBeInTheDocument()
-      }, { timeout: 3000 })
-      
+      await waitFor(
+        () => {
+          expect(screen.queryByText('testuser')).toBeInTheDocument()
+        },
+        { timeout: 3000 }
+      )
+
       expect(screen.getByText('user')).toBeInTheDocument()
       expect(screen.getByLabelText('Sign out')).toBeInTheDocument()
     })
@@ -175,12 +181,11 @@ describe('AppHeader', () => {
       const mockUser = { id: '1', username: 'testuser', role: 'user' }
       const mockToken = 'valid-jwt-token'
 
-      mockLocalStorage.getItem
-        .mockImplementation((key) => {
-          if (key === 'auth_token') return mockToken
-          if (key === 'auth_user') return JSON.stringify(mockUser)
-          return null
-        })
+      mockLocalStorage.getItem.mockImplementation(key => {
+        if (key === 'auth_token') return mockToken
+        if (key === 'auth_user') return JSON.stringify(mockUser)
+        return null
+      })
 
       render(
         <AppHeaderWrapper>
@@ -189,10 +194,13 @@ describe('AppHeader', () => {
       )
 
       // Wait for AuthProvider to load auth data
-      await waitFor(() => {
-        expect(screen.queryByText('testuser')).toBeInTheDocument()
-      }, { timeout: 3000 })
-      
+      await waitFor(
+        () => {
+          expect(screen.queryByText('testuser')).toBeInTheDocument()
+        },
+        { timeout: 3000 }
+      )
+
       const signOutButton = screen.getByLabelText('Sign out')
       await user.click(signOutButton)
 

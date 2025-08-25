@@ -99,7 +99,9 @@ export class MongoDbUserRepository implements UserRepository {
   async update(id: string, updates: Partial<User>): Promise<User | null> {
     const now = new Date()
     const updateDoc = { ...updates, updatedAt: now }
-    delete (updateDoc as any).id // Remove id from updates
+    if ('id' in updateDoc) {
+      delete updateDoc.id // Remove id from updates
+    }
 
     const result = await this.collection.findOneAndUpdate(
       { _id: id },

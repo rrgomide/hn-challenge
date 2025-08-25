@@ -86,7 +86,7 @@ export class AuthController {
       }
 
       // Remove password from user object
-      const { password: _, ...user } = userWithPassword
+      const { password: _password, ...user } = userWithPassword
 
       // Generate token
       const token = generateToken({

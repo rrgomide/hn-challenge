@@ -4,13 +4,13 @@ export interface ApiErrorResponse {
   timestamp?: string
 }
 
-export interface ApiSuccessResponse<T = any> {
+export interface ApiSuccessResponse<T> {
   data: T
   message?: string
   timestamp?: string
 }
 
-export interface PaginatedResponse<T = any> {
+export interface PaginatedResponse<T> {
   data: T[]
   total: number
   page: number
@@ -30,4 +30,4 @@ export const HTTP_STATUS = {
   INTERNAL_SERVER_ERROR: 500,
 } as const
 
-export type HttpStatus = typeof HTTP_STATUS[keyof typeof HTTP_STATUS]
+export type HttpStatus = (typeof HTTP_STATUS)[keyof typeof HTTP_STATUS]

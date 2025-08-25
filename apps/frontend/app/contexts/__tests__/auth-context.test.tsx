@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { AuthProvider, useAuth } from '../auth-context'
-import { act } from 'react'
+import { act as _act } from 'react'
 
 // Mock the API module
 vi.mock('../../lib/api', () => ({

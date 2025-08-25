@@ -1,4 +1,4 @@
-import { AuthResponse, LoginRequest, CreateUserRequest } from '@hn-challenge/shared'
+import { AuthResponse, LoginRequest as _LoginRequest, CreateUserRequest as _CreateUserRequest } from '@hn-challenge/shared'
 import { apiClient, APIError } from '../lib/api-client'
 
 export interface AuthResult {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router'
 import { useAuth } from '../contexts/auth-context'
 import { Button } from '../components/ui/button'
@@ -68,21 +68,7 @@ function ConfigContent() {
   const [error, setError] = useState<string | null>(null)
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
 
-  // Only admins can access this page
-  if (!user || user.role !== 'admin') {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-destructive mb-2">Access Denied</h1>
-          <p className="text-muted-foreground">
-            You need administrator privileges to access this page.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -100,13 +86,13 @@ function ConfigContent() {
 
       const data: ConfigUsersResponse = await response.json()
       setUsers(data.users)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching users:', err)
-      setError(err.message || 'Failed to load users')
+      setError(err instanceof Error ? err.message : 'Failed to load users')
     } finally {
       setLoading(false)
     }
-  }
+  }, [token])
 
   const handleRoleToggle = async (userId: string, newRole: 'admin' | 'user') => {
     try {
@@ -137,9 +123,9 @@ function ConfigContent() {
           user.id === userId ? data.user : user
         )
       )
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating user role:', err)
-      setError(`Error: ${err.message || 'Failed to update user role'}`)
+      setError(`Error: ${err instanceof Error ? err.message : 'Failed to update user role'}`)
     } finally {
       setUpdatingUserId(null)
     }
@@ -147,7 +133,21 @@ function ConfigContent() {
 
   useEffect(() => {
     fetchUsers()
-  }, [])
+  }, [fetchUsers])
+
+  // Only admins can access this page
+  if (!user || user.role !== 'admin') {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-destructive mb-2">Access Denied</h1>
+          <p className="text-muted-foreground">
+            You need administrator privileges to access this page.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (

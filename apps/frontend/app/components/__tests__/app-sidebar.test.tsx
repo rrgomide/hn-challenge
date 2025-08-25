@@ -225,7 +225,7 @@ describe('AppSidebar', () => {
 
   it('shows "Unknown date" for snippets without createdAt', () => {
     const snippetWithoutDate = [
-      { ...mockSnippets[0], createdAt: undefined as any },
+      { ...mockSnippets[0], createdAt: undefined as unknown as Date },
     ]
     const mockOnNewChat = vi.fn()
     render(

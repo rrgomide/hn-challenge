@@ -4,11 +4,21 @@ import { Express } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { randomUUID } from 'crypto'
+import { User, CreateUserRequest, JWTPayload } from '../models/user.js'
+import { UserRepository } from '../repositories/user-repository.js'
 
-// Mock user repository
-const mockUserRepository = {
-  users: new Map(),
-  async create(user: any) {
+// Mock user repository with password support
+interface UserWithPassword extends User {
+  password: string
+}
+
+interface MockUserRepository extends UserRepository {
+  users: Map<string, UserWithPassword>
+}
+
+const mockUserRepository: MockUserRepository = {
+  users: new Map<string, UserWithPassword>(),
+  async create(user: CreateUserRequest): Promise<User> {
     const id = randomUUID()
     const now = new Date()
     const hashedPassword = await bcrypt.hash(user.password, 10)
@@ -23,17 +33,41 @@ const mockUserRepository = {
     }
     this.users.set(id, fullUser)
     // Return user without password (matching User interface)
-    const { password: _, ...userWithoutPassword } = fullUser
+    const { password: _password, ...userWithoutPassword } = fullUser
     return userWithoutPassword
   },
-  async findByUsername(username: string) {
-    return Array.from(this.users.values()).find(user => user.username === username) || null
+  async findByUsername(username: string): Promise<(User & { password: string }) | null> {
+    const user = Array.from(this.users.values()).find(user => user.username === username)
+    return user || null
   },
-  async findByEmail(email: string) {
-    return Array.from(this.users.values()).find(user => user.email === email) || null
+  async findByEmail(email: string): Promise<User | null> {
+    const userWithPassword = Array.from(this.users.values()).find(user => user.email === email)
+    if (!userWithPassword) return null
+    const { password: _password, ...user } = userWithPassword
+    return user
   },
-  async findById(id: string) {
-    return this.users.get(id) || null
+  async findById(id: string): Promise<User | null> {
+    const userWithPassword = this.users.get(id)
+    if (!userWithPassword) return null
+    const { password: _password, ...user } = userWithPassword
+    return user
+  },
+  async findAll(): Promise<User[]> {
+    return Array.from(this.users.values()).map(userWithPassword => {
+      const { password: _password, ...user } = userWithPassword
+      return user
+    })
+  },
+  async update(id: string, updates: Partial<User>): Promise<User | null> {
+    const userWithPassword = this.users.get(id)
+    if (!userWithPassword) return null
+    const updatedUserWithPassword = { ...userWithPassword, ...updates, updatedAt: new Date() }
+    this.users.set(id, updatedUserWithPassword)
+    const { password: _password, ...user } = updatedUserWithPassword
+    return user
+  },
+  async delete(id: string): Promise<boolean> {
+    return this.users.delete(id)
   },
 }
 
@@ -91,7 +125,7 @@ describe('Authentication endpoints integration tests', () => {
       expect(response.body.user).not.toHaveProperty('password')
 
       // Verify JWT token is valid
-      const decoded = jwt.verify(response.body.token, JWT_SECRET) as any
+      const decoded = jwt.verify(response.body.token, JWT_SECRET) as JWTPayload
       expect(decoded.username).toBe('testuser')
       expect(decoded.role).toBe('user')
     })
@@ -187,7 +221,7 @@ describe('Authentication endpoints integration tests', () => {
   })
 
   describe('POST /auth/login', () => {
-    let testUser: any
+    let testUser: User
 
     beforeEach(async () => {
       testUser = await mockUserRepository.create({
@@ -214,7 +248,7 @@ describe('Authentication endpoints integration tests', () => {
       expect(response.body.user).not.toHaveProperty('password')
 
       // Verify JWT token
-      const decoded = jwt.verify(response.body.token, JWT_SECRET) as any
+      const decoded = jwt.verify(response.body.token, JWT_SECRET) as JWTPayload
       expect(decoded.username).toBe('loginuser')
       expect(decoded.userId).toBe(testUser.id)
     })
@@ -270,7 +304,7 @@ describe('Authentication endpoints integration tests', () => {
 
       expect(response.body.user.role).toBe('admin')
 
-      const decoded = jwt.verify(response.body.token, JWT_SECRET) as any
+      const decoded = jwt.verify(response.body.token, JWT_SECRET) as JWTPayload
       expect(decoded.role).toBe('admin')
     })
   })
@@ -290,7 +324,7 @@ describe('Authentication endpoints integration tests', () => {
         .expect(201)
 
       const token = response.body.token
-      const decoded = jwt.verify(token, JWT_SECRET) as any
+      const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
 
       expect(decoded).toHaveProperty('userId')
       expect(decoded).toHaveProperty('username', 'tokentest')

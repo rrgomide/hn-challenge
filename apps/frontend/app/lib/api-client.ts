@@ -48,7 +48,7 @@ class APIClient {
     return response.text()
   }
 
-  async request<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  async request<T = unknown>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const {
       method = 'GET',
       headers = {},
@@ -89,11 +89,11 @@ class APIClient {
   }
 
   // Convenience methods
-  async get<T = any>(endpoint: string, token?: string): Promise<T> {
+  async get<T = unknown>(endpoint: string, token?: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'GET', token })
   }
 
-  async post<T = any>(endpoint: string, data?: any, token?: string): Promise<T> {
+  async post<T = unknown>(endpoint: string, data?: unknown, token?: string): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : null,
@@ -101,7 +101,7 @@ class APIClient {
     })
   }
 
-  async put<T = any>(endpoint: string, data?: any, token?: string): Promise<T> {
+  async put<T = unknown>(endpoint: string, data?: unknown, token?: string): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : null,
@@ -109,7 +109,7 @@ class APIClient {
     })
   }
 
-  async patch<T = any>(endpoint: string, data?: any, token?: string): Promise<T> {
+  async patch<T = unknown>(endpoint: string, data?: unknown, token?: string): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PATCH',
       body: data ? JSON.stringify(data) : null,
@@ -117,7 +117,7 @@ class APIClient {
     })
   }
 
-  async delete<T = any>(endpoint: string, token?: string): Promise<T> {
+  async delete<T = unknown>(endpoint: string, token?: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE', token })
   }
 }

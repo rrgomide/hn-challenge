@@ -8,7 +8,7 @@ export interface FormField<T = string> {
 
 export interface UseFormOptions<T> {
   initialValues: T
-  validationRules?: Partial<Record<keyof T, (value: any) => string | null>>
+  validationRules?: Partial<Record<keyof T, (value: T[keyof T]) => string | null>>
   onSubmit?: (values: T) => void | Promise<void>
 }
 
@@ -18,7 +18,7 @@ export interface UseFormReturn<T> {
   touched: Partial<Record<keyof T, boolean>>
   isSubmitting: boolean
   isValid: boolean
-  setValue: (field: keyof T, value: any) => void
+  setValue: (field: keyof T, value: T[keyof T]) => void
   setError: (field: keyof T, error: string) => void
   setTouched: (field: keyof T, touched: boolean) => void
   handleChange: (field: keyof T) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
@@ -29,7 +29,7 @@ export interface UseFormReturn<T> {
   validateForm: () => boolean
 }
 
-export function useForm<T extends Record<string, any>>({
+export function useForm<T extends Record<string, unknown>>({
   initialValues,
   validationRules = {},
   onSubmit
@@ -62,7 +62,7 @@ export function useForm<T extends Record<string, any>>({
     return isValid
   }, [validateField, validationRules])
 
-  const setValue = useCallback((field: keyof T, value: any) => {
+  const setValue = useCallback((field: keyof T, value: T[keyof T]) => {
     setValues(prev => ({ ...prev, [field]: value }))
     
     // Clear error when value changes
@@ -81,7 +81,7 @@ export function useForm<T extends Record<string, any>>({
 
   const handleChange = useCallback((field: keyof T) => {
     return (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setValue(field, event.target.value)
+      setValue(field, event.target.value as T[keyof T])
     }
   }, [setValue])
 

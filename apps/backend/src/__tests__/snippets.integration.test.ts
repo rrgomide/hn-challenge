@@ -3,7 +3,7 @@ import request from 'supertest'
 import { Express } from 'express'
 import { randomUUID } from 'crypto'
 import jwt from 'jsonwebtoken'
-import { JWTPayload } from '@hn-challenge/shared'
+import { JWTPayload, Snippet } from '@hn-challenge/shared'
 
 // Mock the AI service module before any imports
 const mockSummarizeText = vi.fn()
@@ -17,7 +17,7 @@ vi.mock('../services/ai-service.js', () => ({
 // Mock MongoDB repository to use in-memory storage for tests
 const mockRepository = {
   snippets: new Map(),
-  async create(snippet: any) {
+  async create(snippet: Partial<Snippet>) {
     const id = randomUUID()
     const now = new Date()
     const fullSnippet = {
@@ -51,7 +51,7 @@ const mockRepository = {
     }
     return all.filter(s => s.ownerId === userId || s.isPublic)
   },
-  async update(id: string, updates: any) {
+  async update(id: string, updates: Partial<Snippet>) {
     const existing = this.snippets.get(id)
     if (!existing) return null
     const updated = { ...existing, ...updates }

@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import Index, { action } from '../_index'
+import Index, { action as _action } from '../_index'
 import { AuthProvider } from '../../contexts/auth-context'
 
 // Mock the API module
@@ -71,7 +71,12 @@ vi.mock('react-router', async () => {
     useNavigate: () => mockNavigate,
     useActionData: () => mockActionData(),
     useNavigation: () => mockNavigation(),
-    Form: React.forwardRef(({ children, onSubmit, ...props }: any, ref: any) => <form {...props} ref={ref} onSubmit={onSubmit}>{children}</form>)
+    Form: React.forwardRef(function MockForm(
+      { children, onSubmit, ...props }: React.FormHTMLAttributes<HTMLFormElement>,
+      ref: React.ForwardedRef<HTMLFormElement>
+    ) {
+      return <form {...props} ref={ref} onSubmit={onSubmit}>{children}</form>
+    })
   }
 })
 
@@ -334,7 +339,7 @@ describe('Index Route', () => {
       render(<IndexWrapper />)
       
       // Mock component with error from action data
-      const { rerender } = render(
+      const { rerender: _rerender } = render(
         <MemoryRouter initialEntries={['/']}>
           <AuthProvider>
             <Index />

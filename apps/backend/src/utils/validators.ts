@@ -1,12 +1,12 @@
 import { ValidationError } from './errors.js'
 
-export function validateRequired(value: any, fieldName: string): void {
+export function validateRequired(value: unknown, fieldName: string): void {
   if (value === undefined || value === null) {
     throw new ValidationError(`${fieldName} is required`)
   }
 }
 
-export function validateString(value: any, fieldName: string, minLength: number = 1): void {
+export function validateString(value: unknown, fieldName: string, minLength: number = 1): void {
   validateRequired(value, fieldName)
   
   if (typeof value !== 'string') {
@@ -47,7 +47,7 @@ export function validateUUID(id: string, fieldName: string = 'id'): void {
   }
 }
 
-export function validateBoolean(value: any, fieldName: string, required: boolean = false): boolean {
+export function validateBoolean(value: unknown, fieldName: string, required: boolean = false): boolean {
   if (value === undefined || value === null) {
     if (required) {
       throw new ValidationError(`${fieldName} is required`)

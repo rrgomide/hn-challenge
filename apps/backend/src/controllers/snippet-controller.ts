@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { SnippetService } from '../services/snippet-service.js'
 import { CreateSnippetRequest } from '../models/snippet'
+import { Snippet } from '@hn-challenge/shared'
 import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors.js'
 import { validateString, validateUUID, validateBoolean, sanitizeText } from '../utils/validators.js'
 
@@ -87,7 +88,7 @@ export class SnippetController {
         throw new ForbiddenError('Access denied')
       }
 
-      const updates: any = {}
+      const updates: Partial<Pick<Snippet, 'text' | 'isPublic'>> = {}
       if (text !== undefined) {
         validateString(text, 'text')
         updates.text = sanitizeText(text)

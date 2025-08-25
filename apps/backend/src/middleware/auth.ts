@@ -5,6 +5,7 @@ import { UnauthorizedError, ForbiddenError } from '../utils/errors.js'
 import { config } from '../config/environment.js'
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: JWTPayload
@@ -34,12 +35,12 @@ export function authMiddleware(
       const decoded = jwt.verify(token, config.jwtSecret) as JWTPayload
       req.user = decoded
       next()
-    } catch (error: any) {
-      if (error.name === 'TokenExpiredError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'TokenExpiredError') {
         throw new UnauthorizedError('Token expired')
       }
       
-      if (error.name === 'JsonWebTokenError') {
+      if (error instanceof Error && error.name === 'JsonWebTokenError') {
         throw new UnauthorizedError('Invalid token format')
       }
 

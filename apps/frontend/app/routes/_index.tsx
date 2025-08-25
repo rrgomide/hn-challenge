@@ -13,6 +13,7 @@ import { Button } from '../components/ui/button'
 import { RadioGroup, RadioItem } from '../components/ui/radio-group'
 import { ScrollArea } from '../components/ui/scroll-area'
 import { Textarea } from '../components/ui/textarea'
+import type { Snippet } from '@hn-challenge/shared'
 import { useAuth } from '../contexts/auth-context'
 import { API_BASE_URL } from '../lib/api'
 import { apiClient } from '../lib/api-client'
@@ -40,7 +41,7 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-    const snippet = await apiClient.post(
+    const snippet = await apiClient.post<Snippet>(
       '/snippets',
       { text: text.trim() },
       token
@@ -107,7 +108,7 @@ function SummarizeForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [streamingData, setStreamingData] = useState<{
-    snippet: any
+    snippet: Snippet
     summary: string
     isComplete: boolean
   } | null>(null)

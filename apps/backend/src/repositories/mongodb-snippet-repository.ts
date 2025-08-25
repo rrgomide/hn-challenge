@@ -1,4 +1,4 @@
-import { Db, Collection } from 'mongodb'
+import { Db, Collection, Filter } from 'mongodb'
 import { randomUUID } from 'crypto'
 import { Snippet } from '../models/snippet.js'
 import { SnippetRepository, UserSnippetCount } from './snippet-repository.js'
@@ -96,7 +96,7 @@ export class MongoDbSnippetRepository implements SnippetRepository {
   }
 
   async findAccessible(userId: string, userRole: 'user' | 'moderator' | 'admin'): Promise<Snippet[]> {
-    let query: any
+    let query: Filter<SnippetDocument>
 
     if (userRole === 'admin' || userRole === 'moderator') {
       // Admin and moderator can see all snippets
@@ -124,7 +124,9 @@ export class MongoDbSnippetRepository implements SnippetRepository {
       ...updates,
       updatedAt: new Date(),
     }
-    delete (updateData as any).id // Remove id from updates
+    if ('id' in updateData) {
+      delete updateData.id // Remove id from updates
+    }
 
     const result = await this.collection.findOneAndUpdate(
       { _id: id },

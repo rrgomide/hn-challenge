@@ -150,7 +150,7 @@ describe('RadioGroup', () => {
   })
 
   it('applies variant styles correctly', () => {
-    const { container } = render(
+    const { container: _container } = render(
       <RadioGroup>
         <RadioItem value="option1" variant="filled">Option 1</RadioItem>
         <RadioItem value="option2" variant="default">Option 2</RadioItem>

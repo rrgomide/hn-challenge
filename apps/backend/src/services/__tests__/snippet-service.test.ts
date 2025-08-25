@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { randomUUID } from 'crypto'
+import { Snippet } from '@hn-challenge/shared'
+import type { SnippetRepository } from '../../repositories/snippet-repository.js'
 
 // Mock the AI service module before any imports
 const mockSummarizeText = vi.fn()
@@ -15,7 +17,7 @@ import { SnippetService } from '../snippet-service.js'
 // Mock repository for testing
 const mockRepository = {
   snippets: new Map(),
-  async create(snippet: any) {
+  async create(snippet: Partial<Snippet>) {
     const id = randomUUID()
     const now = new Date()
     const fullSnippet = {
@@ -34,7 +36,7 @@ const mockRepository = {
   async findAll() {
     return Array.from(this.snippets.values())
   },
-  async update(id: string, updates: any) {
+  async update(id: string, updates: Partial<Snippet>) {
     const existing = this.snippets.get(id)
     if (!existing) return null
     const updated = { ...existing, ...updates }
@@ -52,7 +54,7 @@ describe('SnippetService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRepository.snippets.clear()
-    snippetService = new SnippetService(mockRepository as any)
+    snippetService = new SnippetService(mockRepository as SnippetRepository)
   })
 
   describe('createSnippet', () => {
@@ -134,7 +136,7 @@ describe('SnippetService', () => {
       }))
 
       // This should not throw during construction, but log an error
-      expect(() => new SnippetService(mockRepository as any)).not.toThrow()
+      expect(() => new SnippetService(mockRepository as SnippetRepository)).not.toThrow()
     })
 
     it('should add getAllSnippets method', async () => {

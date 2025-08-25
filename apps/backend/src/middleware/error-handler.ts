@@ -3,7 +3,7 @@ import { AppError } from '../utils/errors.js'
 
 interface ErrorResponse {
   error: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export function errorHandler(
@@ -24,8 +24,8 @@ export function errorHandler(
   }
 
   // Handle MongoDB duplicate key errors
-  if (err.name === 'MongoError' && (err as any).code === 11000) {
-    const field = Object.keys((err as any).keyValue)[0]
+  if (err.name === 'MongoError' && 'code' in err && (err as { code: number }).code === 11000) {
+    const field = Object.keys((err as { keyValue: Record<string, unknown> }).keyValue)[0]
     res.status(409).json({ error: `${field} already exists` })
     return
   }

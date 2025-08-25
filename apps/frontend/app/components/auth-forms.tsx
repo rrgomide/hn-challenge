@@ -65,7 +65,7 @@ export function AuthForms({ onSuccess }: AuthFormsProps) {
       // Success - reset form and call success callback
       setFormData({ username: '', email: '', password: '', confirmPassword: '' })
       onSuccess?.()
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.')
     } finally {
       setIsLoading(false)
