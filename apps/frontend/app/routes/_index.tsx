@@ -1,32 +1,26 @@
+import { Check, Clock, Send, Zap } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import type { ActionFunctionArgs } from 'react-router'
 import {
   Form,
-  useActionData,
-  redirect,
-  useNavigation,
   Link,
+  redirect,
+  useActionData,
   useNavigate,
+  useNavigation,
 } from 'react-router'
-import { Textarea } from '../components/ui/textarea'
 import { Button } from '../components/ui/button'
 import { RadioGroup, RadioItem } from '../components/ui/radio-group'
 import { ScrollArea } from '../components/ui/scroll-area'
-import { Send, Zap, Clock, Check } from 'lucide-react'
-import { useState, useRef, useEffect } from 'react'
-import { getAuthFromCookies } from '../lib/cookies'
-import { apiClient } from '../lib/api-client'
+import { Textarea } from '../components/ui/textarea'
 import { useAuth } from '../contexts/auth-context'
 import { API_BASE_URL } from '../lib/api'
-import type { ActionFunctionArgs } from 'react-router'
+import { apiClient } from '../lib/api-client'
 import { cn } from '../lib/utils'
+import { validateSession } from '../server/session.server'
 
 export async function action({ request }: ActionFunctionArgs) {
-  const cookieHeader = request.headers.get('Cookie')
-  const { token } = getAuthFromCookies(cookieHeader)
-
-  if (!token) {
-    throw redirect('/auth')
-  }
-
+  const token = validateSession(request)
   const formData = await request.formData()
   const text = formData.get('text') as string
   const mode = formData.get('mode') as 'batch' | 'stream'
@@ -36,8 +30,6 @@ export async function action({ request }: ActionFunctionArgs) {
     return { error: 'Text content is required' }
   }
 
-  // Only handle batch requests in the server action
-  // Streaming is handled client-side
   if (useStreaming) {
     return { error: 'Streaming should be handled client-side' }
   }
@@ -120,9 +112,8 @@ function SummarizeForm() {
   const isServerSubmitting = navigation.state === 'submitting'
   const navigate = useNavigate()
   const { token } = useAuth()
-
-  // Clear the text field when form is submitted successfully (no action data means redirect happened)
   const useStreaming = mode === 'stream'
+
   useEffect(() => {
     if (!actionData && !useStreaming) {
       setText('')
@@ -131,8 +122,8 @@ function SummarizeForm() {
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
-      event.preventDefault()
       if (useStreaming) {
+        event.preventDefault()
         handleStreamingSubmit()
       } else {
         formRef.current?.requestSubmit()
@@ -141,7 +132,9 @@ function SummarizeForm() {
   }
 
   const handleStreamingSubmit = async () => {
-    if (!text.trim() || !token || isSubmitting) return
+    if (!text.trim() || !token || isSubmitting) {
+      return
+    }
 
     setIsSubmitting(true)
     setError(null)
@@ -170,12 +163,14 @@ function SummarizeForm() {
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
-      let snippet: any = null
       let summaryAccumulator = ''
 
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
+
+        if (done) {
+          break
+        }
 
         const chunk = decoder.decode(value, { stream: true })
         const lines = chunk.split('\n')
@@ -183,20 +178,23 @@ function SummarizeForm() {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             try {
-              const data = JSON.parse(line.slice(6))
+              /**
+               * Removing this string: "data: "
+               * so we can parse the JSON object
+               */
+              const { type, data } = JSON.parse(line.slice(6))
 
-              switch (data.type) {
+              switch (type) {
                 case 'snippet':
-                  snippet = data.data
                   setStreamingData({
-                    snippet: data.data,
+                    snippet: data,
                     summary: '',
                     isComplete: false,
                   })
                   break
 
                 case 'summary_chunk':
-                  summaryAccumulator += data.data
+                  summaryAccumulator += data
                   setStreamingData(prev =>
                     prev
                       ? {
@@ -212,18 +210,17 @@ function SummarizeForm() {
                     prev
                       ? {
                           ...prev,
-                          summary: data.data.summary,
+                          summary: data.summary,
                           isComplete: true,
                         }
                       : null
                   )
 
-                  // Don't redirect for streaming - per requirement
                   setText('')
                   break
 
                 case 'error':
-                  throw new Error(data.data.message)
+                  throw new Error(data.message)
               }
             } catch (parseError) {
               console.error('Error parsing SSE data:', parseError)
@@ -246,13 +243,15 @@ function SummarizeForm() {
       e.preventDefault()
       handleStreamingSubmit()
     }
-    // Let the form submit normally for batch mode
+
+    /**
+     * Batch mode will be handled by React Router's action
+     */
+    return
   }
 
   const displayError = error || actionData?.error
   const showSpinner = isSubmitting || isServerSubmitting
-  console.log({ mode })
-  console.log({ cn: cn(mode === 'batch' ? 'bg-blue-800' : 'bg-red-800') })
 
   return (
     <div className="space-y-4">
